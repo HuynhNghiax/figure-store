@@ -21,7 +21,6 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # 🔥 ĐÃ THÊM: Bước cấp quyền thực thi cho file mvnw để sửa lỗi Permission denied
       - name: Grant execute permission for mvnw
         run: chmod +x mvnw
 
@@ -40,6 +39,9 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm install
+
       - run: npm run build
       - run: npm run lint
