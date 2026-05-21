@@ -10,9 +10,11 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    setUser(getStoredUser());
+    setTimeout(() => {
+      setUser(getStoredUser());
+    }, 0);
   }, [location]);
-
+  
   const handleLogout = () => {
     clearAuth();
     setUser(null);

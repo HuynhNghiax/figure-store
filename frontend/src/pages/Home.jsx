@@ -13,7 +13,7 @@ export default function Home() {
   const itemsPerPage = 8;
 
   useEffect(() => {
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     const params = new URLSearchParams({
       page: String(currentPage - 1),
       size: String(itemsPerPage),
@@ -33,7 +33,7 @@ export default function Home() {
   }, [currentPage, searchTerm, selectedBrand]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setTimeout(() => setCurrentPage(1), 0);
   }, [searchTerm, selectedBrand]);
 
   const brands = ['All', 'Bandai', 'Good Smile', 'Hot Toys', 'MegaHouse', 'Banpresto'];

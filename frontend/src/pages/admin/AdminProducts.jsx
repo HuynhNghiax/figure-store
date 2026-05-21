@@ -48,8 +48,10 @@ export default function AdminProducts() {
     if (selectedBrand !== 'All') {
       result = result.filter(p => p.brand === selectedBrand);
     }
-    setFilteredProducts(result);
-    setCurrentPage(1);
+    setTimeout(() => {
+      setFilteredProducts(result);
+      setCurrentPage(1);
+    }, 0);
   }, [searchTerm, selectedBrand, products]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -89,7 +91,7 @@ export default function AdminProducts() {
       } else {
         toast.error(result.message || "Tải ảnh thất bại!");
       }
-    } catch (err) {
+    } catch {
       toast.dismiss(loadingToast);
       toast.error("Lỗi kết nối Server!");
     } finally {
@@ -136,7 +138,7 @@ export default function AdminProducts() {
           toast.error("Lỗi hệ thống, vui lòng kiểm tra lại!");
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Không thể kết nối đến Backend!");
     }
   };
@@ -155,7 +157,7 @@ export default function AdminProducts() {
           // Phòng trường hợp mô hình này đang dính khóa ngoại ở bảng Order hoặc Review
           toast.error("Không thể xóa sản phẩm này vì nó đang nằm trong lịch sử đơn hàng của khách!");
         }
-      } catch (err) {
+      } catch {
         toast.error("Lỗi xóa sản phẩm!");
       }
     }

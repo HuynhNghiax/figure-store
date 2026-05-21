@@ -10,6 +10,7 @@ export default function Profile() {
   const user = getStoredUser();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     // Nếu chưa đăng nhập thì đá về trang login
     if (!user) {
       toast.error("Vui lòng đăng nhập để xem lịch sử đơn hàng!");

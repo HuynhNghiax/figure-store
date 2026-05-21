@@ -52,7 +52,7 @@ export default function Register() {
         // Nếu lỗi (400, 500, trùng tên, lỗi mail...) thì ở lại Step 1
         toast.error(data.message || "Có lỗi xảy ra, nhập lại thông tin nhé!");
       }
-    } catch (err) {
+    } catch {
       toast.dismiss(loading);
       toast.error("Server đang ngủ gật rồi, kiểm tra lại Backend đi Nghĩa!");
     }
@@ -83,7 +83,7 @@ export default function Register() {
         // Nhập sai OTP thì ở lại trang OTP để nhập lại, không cho về Step 1
         toast.error(data.message || "Mã sai rồi, kiểm tra lại trong Mail nhé!");
       }
-    } catch (err) {
+    } catch {
       toast.dismiss(loading);
       toast.error("Lỗi xác thực, thử lại sau nhé!");
     }
