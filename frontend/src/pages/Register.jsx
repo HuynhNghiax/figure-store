@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { API_BASE } from '../utils/api';
 
 export default function Register() {
   const [step, setStep] = useState(1); // 1: Nhập thông tin, 2: Xác thực OTP
@@ -29,7 +30,7 @@ export default function Register() {
     const loading = toast.loading("Hệ thống đang kiểm tra thông tin...");
     
     try {
-      const response = await fetch("http://localhost:8080/api/auth/register", {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -44,7 +45,7 @@ export default function Register() {
 
       // CHỖ NÀY QUAN TRỌNG: Chỉ chuyển trang khi response là OK (200)
       if (response.ok) {
-        toast.success("Mã OTP đã "bay" vào Gmail của bạn!");
+        toast.success("Mã OTP đã bay vào Gmail của bạn!");
         setFormData(prev => ({ ...prev, otp: '' })); // Xóa trắng rác trong ô OTP
         setStep(2); // Chỉ lúc này mới cho qua trang OTP
       } else {
@@ -63,7 +64,7 @@ export default function Register() {
     const loading = toast.loading("Đang xác thực mã...");
     
     try {
-      const response = await fetch("http://localhost:8080/api/auth/verify-otp", {
+      const response = await fetch(`${API_BASE}/api/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

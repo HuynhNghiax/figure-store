@@ -1,25 +1,42 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { API_BASE, getAdminHeaders } from '../../utils/api';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null); // Lưu đơn hàng đang được xem chi tiết
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const fetchOrders = () => {
-    fetch("http://localhost:8080/api/orders")
-      .then(res => res.json())
-      .then(data => setOrders(data));
+    fetch(`${API_BASE}/api/orders`, { headers: getAdminHeaders() })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Không thể tải đơn hàng');
+        return res.json();
+      })
+      .then(data => setOrders(data))
+      .catch(() => toast.error('Lỗi tải danh sách đơn hàng!'));
   };
 
   useEffect(() => { fetchOrders(); }, []);
 
   const handleUpdateStatus = async (orderId, status) => {
+    if (status === 'COMPLETED') return;
     const nextStatus = status === 'PENDING' ? 'SHIPPED' : 'COMPLETED';
-    await fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: nextStatus
-    });
-    fetchOrders();
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (res.ok) {
+        toast.success('Cập nhật trạng thái thành công!');
+        fetchOrders();
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Cập nhật thất bại!');
+      }
+    } catch {
+      toast.error('Lỗi kết nối server!');
+    }
   };
 
   return (

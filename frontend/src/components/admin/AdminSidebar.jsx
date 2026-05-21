@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { clearAuth } from '../../utils/api';
 
 export default function AdminSidebar() {
   const location = useLocation();
@@ -12,7 +13,7 @@ export default function AdminSidebar() {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('fighub_user');
+    clearAuth();
     navigate("/");
   };
 

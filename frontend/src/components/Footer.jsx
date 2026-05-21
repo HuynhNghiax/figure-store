@@ -35,7 +35,7 @@ export default function Footer() {
             <h3 className="text-white font-black uppercase text-xs tracking-[0.3em] mb-8">Khám phá</h3>
             <ul className="space-y-4 text-sm text-gray-500 font-bold">
               <li><Link to="/" className="hover:text-orange-500 transition">Trang chủ</Link></li>
-              <li><Link to="/products" className="hover:text-orange-500 transition">Tất cả sản phẩm</Link></li>
+              <li><Link to="/" className="hover:text-orange-500 transition">Tất cả sản phẩm</Link></li>
               <li><Link to="/cart" className="hover:text-orange-500 transition">Giỏ hàng</Link></li>
               <li><Link to="/profile" className="hover:text-orange-500 transition">Đơn hàng của tôi</Link></li>
             </ul>

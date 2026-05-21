@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useEffect, useState } from 'react';
+import { getStoredUser, clearAuth } from '../utils/api';
 
 export default function Navbar() {
   const { totalItems } = useCart();
@@ -9,14 +10,12 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const loggedInUser = JSON.parse(localStorage.getItem('fighub_user'));
-    setUser(loggedInUser);
+    setUser(getStoredUser());
   }, [location]);
 
   const handleLogout = () => {
-    localStorage.removeItem('fighub_user');
+    clearAuth();
     setUser(null);
-    alert("Đã đăng xuất!");
     navigate("/");
   };
 
@@ -39,12 +38,12 @@ export default function Navbar() {
           <Link to="/" className="text-gray-400 hover:text-orange-500 transition">Cửa hàng</Link>
           
           {user?.role === 'ADMIN' && (
-            <Link to="/admin/orders" className="text-orange-500 hover:text-white flex items-center gap-1">
+            <Link to="/admin/dashboard" className="text-orange-500 hover:text-white flex items-center gap-1">
               <span className="animate-pulse">●</span> Dashboard
             </Link>
           )}
 
-          {user?.role === 'USER' && (
+          {user && user.role !== 'ADMIN' && (
             <Link to="/profile" className="text-blue-400 hover:text-white flex items-center gap-1">
               👤 Trang cá nhân
             </Link>

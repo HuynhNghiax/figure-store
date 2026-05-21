@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { API_BASE, getAdminHeaders } from '../../utils/api';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = () => {
-    fetch("http://localhost:8080/api/users")
-      .then(res => res.json())
+    fetch(`${API_BASE}/api/users`, { headers: getAdminHeaders() })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Không thể tải users');
+        return res.json();
+      })
       .then(data => {
         setUsers(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error('Lỗi tải danh sách khách hàng!');
         setLoading(false);
       });
   };
@@ -18,9 +26,17 @@ export default function AdminUsers() {
 
   const handleDeleteUser = async (id) => {
     if (window.confirm("Bạn có chắc muốn xóa khách hàng này không?")) {
-      await fetch(`http://localhost:8080/api/users/${id}`, { method: "DELETE" });
-      toast.success("Đã xóa khách hàng!");
-      fetchUsers();
+      const res = await fetch(`${API_BASE}/api/users/${id}`, {
+        method: "DELETE",
+        headers: getAdminHeaders(),
+      });
+      if (res.ok) {
+        toast.success("Đã xóa khách hàng!");
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Không thể xóa khách hàng!');
+      }
     }
   };
 

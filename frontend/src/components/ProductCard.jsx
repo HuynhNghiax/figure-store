@@ -1,44 +1,84 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import toast from 'react-hot-toast';
+import { imageUrl } from '../utils/api';
 
 export default function ProductCard({ item }) {
-  const { addToCart } = useCart();
-  const isOutOfStock = item.stock <= 0;
+  const { addToCartWithCheck } = useCart();
+
+  // BƯỚC 1: KIỂM TRA TRẠNG THÁI TỒN KHO TỪ ĐÂY
+  const isOutOfStock = item.stock <= 0; // Nếu stock = 0 thì là hết hàng
+
+  const handleAddToCart = (product) => {
+    // Chặn an toàn thêm một lần nữa ở Frontend, dù nút đã bị disabled
+    if (isOutOfStock) {
+      toast.error("Mô hình này đã cháy hàng rồi Nghĩa ơi! Đừng cố đấm ăn xôi 😢");
+      return;
+    }
+    // Nếu còn hàng thì thêm vào giỏ như bình thường
+    const ok = addToCartWithCheck(product, (msg) => toast.error(msg));
+    if (ok) toast.success(`Đã thêm ${product.name} vào giỏ hàng thành công!`);
+  };
 
   return (
-    <div className={`group bg-[#161616] rounded-[32px] p-4 border border-white/5 transition-all duration-500 flex flex-col h-full ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:border-orange-500/30 hover:-translate-y-2'}`}>
-      <Link to={`/product/${item.id}`} className="block relative aspect-[4/5] overflow-hidden rounded-2xl mb-5 bg-[#0a0a0a]">
+    <div className="bg-[#111] rounded-[32px] border border-white/5 overflow-hidden flex flex-col group hover:border-white/10 transition-all relative">
+      
+      {/* 1. Phần Ảnh sản phẩm + Tag trạng thái */}
+      <div className="relative aspect-square bg-black overflow-hidden">
         <img 
-          src={item.imageUrl} 
-          alt={item.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-          loading="lazy"
+          src={imageUrl(item.imageUrl)} 
+          alt={item.name} 
+          // BƯỚC 2: NẾU HẾT HÀNG THÌ LÀM MỜ VÀ BLUR ẢNH ĐI
+          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ${isOutOfStock ? 'opacity-30 blur-[1px]' : ''}`} 
         />
-        {isOutOfStock ? (
-          <span className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black uppercase text-xs tracking-widest">Hết hàng</span>
-        ) : item.isPreOrder && (
-          <span className="absolute top-3 left-3 bg-orange-600 text-[9px] font-black uppercase px-3 py-1 rounded-full italic tracking-widest shadow-lg z-10">Pre-Order</span>
-        )}
-      </Link>
-
-      <div className="px-2 flex flex-col flex-1">
-        <p className="text-[9px] uppercase tracking-[0.3em] text-gray-500 font-bold mb-1">{item.brand}</p>
-        <Link to={`/product/${item.id}`}>
-          <h3 className="text-white font-bold text-sm leading-tight mb-4 group-hover:text-orange-500 transition-colors line-clamp-2 h-10">
-            {item.name}
-          </h3>
-        </Link>
         
-        <div className="flex items-center justify-between mt-auto pt-2">
-          <span className="text-lg font-black italic text-white">
-            {item.price?.toLocaleString()}đ
-          </span>
-          <button 
-            disabled={isOutOfStock}
-            onClick={() => addToCart(item)}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all active:scale-90 shadow-xl ${isOutOfStock ? 'bg-gray-800 text-gray-600 cursor-not-allowed' : 'bg-white text-black hover:bg-orange-600 hover:text-white'}`}
+        {/* HIỂN THỊ TAG TRẠNG THÁI TƯƠNG ỨNG */}
+        {isOutOfStock ? (
+          // Tag Đỏ: Cháy hàng
+          <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-lg z-10">
+            Cháy hàng 
+          </div>
+        ) : item.isPreOrder ? (
+          // Tag Xanh: Hàng Pre-order (giữ nguyên logic cũ của bạn nếu có)
+          <div className="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-lg z-10">
+            Pre-Order
+          </div>
+        ) : null}
+      </div>
+
+      {/* 2. Phần Thông tin chữ nghĩa */}
+      <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+        <div>
+          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-1">{item.brand}</p>
+          <Link 
+            to={`/product/${item.id}`} 
+            className="font-bold text-white text-sm hover:text-orange-500 transition line-clamp-2"
           >
-            {isOutOfStock ? '✕' : '+'}
+            {item.name}
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between items-baseline gap-2">
+            <span className="text-lg font-black italic text-orange-500">{item.price?.toLocaleString()}đ</span>
+            {/* Hiển thị số lượng kho cho khách xem luôn */}
+            <span className="text-[10px] text-gray-600 font-bold shrink-0">Kho: {item.stock} cái</span>
+          </div>
+
+          {/* BƯỚC 3: THAY ĐỔI NÚT MUA THEO TRẠNG THÁI TỒN KHO */}
+          <button
+            onClick={() => handleAddToCart(item)}
+            // VÔ HIỆU HÓA (DISABLE) NÚT BẤM KHI HẾT HÀNG
+            disabled={isOutOfStock} 
+            // ĐỔI MÀU SẮC THEO TRẠNG THÁI (HẾT HÀNG -> XÁM VIỀN TRONG)
+            className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 ${
+              isOutOfStock 
+                ? 'bg-white/5 text-gray-600 border border-white/5 cursor-not-allowed' // Style khi hết hàng
+                : 'bg-white text-black hover:bg-orange-600 hover:text-white shadow-lg active:scale-95' // Style khi còn hàng
+            }`}
+          >
+            {/* THAY ĐỔI CHỮ HIỂN THỊ TRÊN NÚT */}
+            {isOutOfStock ? '❌ HẾT HÀNG' : '🛒 THÊM VÀO GIỎ'}
           </button>
         </div>
       </div>
