@@ -14,11 +14,17 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+
+      # 🔥 ĐÃ THÊM: Bước cấp quyền thực thi cho file mvnw để sửa lỗi Permission denied
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
       - name: Test & package
         run: ./mvnw -B test package -DskipTests=false
 

@@ -47,7 +47,6 @@ cd backend
 ```powershell
 cd frontend
 copy .env.example .env
-# Sửa VITE_GOOGLE_CLIENT_ID trong .env
 npm install
 npm run dev
 ```
