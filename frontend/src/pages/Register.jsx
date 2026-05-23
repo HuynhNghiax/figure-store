@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { API_BASE } from '../utils/api';
@@ -12,7 +12,54 @@ export default function Register() {
     confirmPassword: '', 
     otp: '' 
   });
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const timerRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const startOtpCountdown = () => {
+    setOtpCountdown(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setOtpCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0 || resending) return;
+    setResending(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: formData.username })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success("Mã OTP mới đã được gửi về Gmail!");
+        startOtpCountdown();
+      } else {
+        toast.error(data.message || "Không thể gửi lại OTP!");
+      }
+    } catch {
+      toast.error("Lỗi kết nối server!");
+    } finally {
+      setResending(false);
+    }
+  };
 
   // BƯỚC 1: XỬ LÝ ĐĂNG KÝ
   const handleRegister = async (e) => {
@@ -48,6 +95,7 @@ export default function Register() {
         toast.success("Mã OTP đã bay vào Gmail của bạn!");
         setFormData(prev => ({ ...prev, otp: '' })); // Xóa trắng rác trong ô OTP
         setStep(2); // Chỉ lúc này mới cho qua trang OTP
+        startOtpCountdown();
       } else {
         // Nếu lỗi (400, 500, trùng tên, lỗi mail...) thì ở lại Step 1
         toast.error(data.message || "Có lỗi xảy ra, nhập lại thông tin nhé!");
@@ -154,6 +202,25 @@ export default function Register() {
             <button className="w-full bg-green-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-xl active:scale-95">
               Xác nhận tài khoản
             </button>
+
+            {/* Nút gửi lại OTP với countdown */}
+            <div className="text-center">
+              {otpCountdown > 0 ? (
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                  Gửi lại mã sau {otpCountdown}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resending}
+                  className="text-[10px] text-orange-500 font-bold uppercase tracking-widest hover:text-white transition disabled:opacity-30"
+                >
+                  {resending ? 'Đang gửi...' : '↻ Gửi lại mã OTP'}
+                </button>
+              )}
+            </div>
+
             <button 
               type="button" 
               onClick={() => setStep(1)} 

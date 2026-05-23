@@ -18,6 +18,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminLayout from './layouts/AdminLayout';
+import NotFound from './pages/NotFound';
 // Thành phần bảo vệ Route cho Admin
 const ProtectedRoute = ({ children }) => {
   const user = getStoredUser();
@@ -58,6 +59,7 @@ function App() {
               <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
               <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
 

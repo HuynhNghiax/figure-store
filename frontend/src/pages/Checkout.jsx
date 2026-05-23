@@ -17,9 +17,17 @@ export default function Checkout() {
     address: ''
   });
 
+  const isValidPhone = (phone) => {
+    return /^(0[3|5|7|8|9])[0-9]{8}$/.test(phone);
+  };
+
   const handleConfirmOrder = async () => {
     if (!customer.customerName || !customer.phone || !customer.address) {
       toast.error("Vui lòng nhập đủ thông tin giao hàng!");
+      return;
+    }
+    if (!isValidPhone(customer.phone)) {
+      toast.error("Số điện thoại không hợp lệ! Phải là số điện thoại Việt Nam 10 số (03, 05, 07, 08, 09)");
       return;
     }
 

@@ -23,6 +23,7 @@ export default function AdminProducts() {
     stock: 10, 
     isPreOrder: false 
   });
+  const [brandInputMode, setBrandInputMode] = useState('select');
 
   const fetchProducts = () => {
     fetch(`${API_BASE}/api/products/admin`, { headers: getAdminHeaders() })
@@ -128,10 +129,10 @@ export default function AdminProducts() {
         toast.success(isEdit ? "Cập nhật thành công!" : "Đã thêm hàng mới!");
         setShowModal(false);
         setIsEdit(false);
+        setBrandInputMode('select');
         setFormData({ id: null, name: '', price: '', brand: 'Bandai', imageUrl: '', stock: 10, isPreOrder: false });
         fetchProducts();
       } else {
-        // CHỖ NÀY LÀM NÊN ĐỘ CHẶT CHẼ: Quét qua map lỗi validation từ GlobalExceptionHandler gửi về
         if (typeof result === 'object') {
           Object.values(result).forEach(msg => toast.error(msg));
         } else {
@@ -154,7 +155,6 @@ export default function AdminProducts() {
           toast.success("Đã xóa khỏi kho!");
           fetchProducts();
         } else {
-          // Phòng trường hợp mô hình này đang dính khóa ngoại ở bảng Order hoặc Review
           toast.error("Không thể xóa sản phẩm này vì nó đang nằm trong lịch sử đơn hàng của khách!");
         }
       } catch {
@@ -173,6 +173,7 @@ export default function AdminProducts() {
         <button 
           onClick={() => { 
             setIsEdit(false); 
+            setBrandInputMode('select');
             setFormData({ id: null, name: '', price: '', brand: 'Bandai', imageUrl: '', stock: 10, isPreOrder: false });
             setShowModal(true); 
           }} 
@@ -337,13 +338,42 @@ export default function AdminProducts() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <select 
-                  value={formData.brand}
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white text-sm"
-                  onChange={e => setFormData({...formData, brand: e.target.value})}
-                >
-                  {brands.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center mb-1">
+                    <button
+                      type="button"
+                      onClick={() => { setBrandInputMode('select'); setFormData({...formData, brand: brands[0]}); }}
+                      className={`text-[9px] px-3 py-1 rounded-lg font-bold uppercase transition ${brandInputMode === 'select' ? 'bg-orange-600 text-white' : 'text-gray-500 border border-white/10'}`}
+                    >
+                      Chọn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBrandInputMode('custom'); setFormData({...formData, brand: ''}); }}
+                      className={`text-[9px] px-3 py-1 rounded-lg font-bold uppercase transition ${brandInputMode === 'custom' ? 'bg-orange-600 text-white' : 'text-gray-500 border border-white/10'}`}
+                    >
+                      Tự nhập
+                    </button>
+                  </div>
+                  {brandInputMode === 'select' ? (
+                    <select 
+                      value={formData.brand}
+                      className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white text-sm cursor-pointer"
+                      onChange={e => setFormData({...formData, brand: e.target.value})}
+                    >
+                      {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text"
+                      value={formData.brand}
+                      placeholder="Nhập tên thương hiệu..."
+                      className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white text-sm"
+                      onChange={e => setFormData({...formData, brand: e.target.value})}
+                      required
+                    />
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2 bg-black border border-white/10 rounded-2xl px-6 py-4">
                   <input 

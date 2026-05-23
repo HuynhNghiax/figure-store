@@ -67,7 +67,34 @@ export default function ProductDetail() {
     }
   };
 
-  if (loading) return <div className="pt-40 text-center animate-pulse">ĐANG TẢI CHI TIẾT...</div>;
+  if (loading) return (
+    <div className="max-w-6xl mx-auto px-6 py-20 min-h-screen animate-pulse">
+      <div className="h-4 bg-white/5 rounded w-24 mb-10"></div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
+        <div className="rounded-[40px] bg-[#111] aspect-square"></div>
+        <div className="space-y-6">
+          <div className="h-6 bg-white/5 rounded-full w-24"></div>
+          <div className="h-12 bg-white/5 rounded w-3/4"></div>
+          <div className="h-10 bg-white/5 rounded w-1/3"></div>
+          <div className="h-4 bg-white/5 rounded w-1/2"></div>
+          <div className="h-16 bg-white/5 rounded-2xl w-full mt-8"></div>
+        </div>
+      </div>
+      <div className="border-t border-white/5 pt-20">
+        <div className="h-8 bg-white/5 rounded w-72 mb-12"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+          <div className="lg:col-span-1">
+            <div className="bg-[#161616] rounded-[32px] p-8 h-48"></div>
+          </div>
+          <div className="lg:col-span-2 space-y-6">
+            {[1,2,3].map(i => (
+              <div key={i} className="bg-[#111] rounded-[32px] p-8 h-28"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (!product) return <div className="pt-40 text-center text-red-500 font-bold uppercase tracking-widest">Sản phẩm không tồn tại!</div>;
 
   return (
