@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers("/api/payments/vnpay-return").permitAll()
+                .requestMatchers("/api/payments/paypal-return").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
                 .anyRequest().authenticated()
             )

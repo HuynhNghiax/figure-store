@@ -42,17 +42,21 @@ export default function Register() {
     if (otpCountdown > 0 || resending) return;
     setResending(true);
     try {
-      const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: formData.username })
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        })
       });
       const data = await response.json();
       if (response.ok) {
         toast.success("Mã OTP mới đã được gửi về Gmail!");
         startOtpCountdown();
       } else {
-        toast.error(data.message || "Không thể gửi lại OTP!");
+        toast.error(data.message || "Không thể gửi lại OTP! Nếu tài khoản đã tồn tại, hãy kiểm tra email cũ.");
       }
     } catch {
       toast.error("Lỗi kết nối server!");

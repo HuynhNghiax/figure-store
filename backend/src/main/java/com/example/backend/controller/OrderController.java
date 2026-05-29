@@ -4,15 +4,13 @@ import com.example.backend.entity.Order;
 import com.example.backend.repository.OrderRepository;
 import com.example.backend.security.SecurityUtils;
 import com.example.backend.service.OrderService;
-import com.example.backend.service.VnpayService;
+import com.example.backend.service.PaypalService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -27,13 +25,10 @@ public class OrderController {
     private OrderService orderService;
 
     @Autowired
-    private VnpayService vnpayService;
-
-    @Value("${app.api-base-url:http://localhost:8080}")
-    private String apiBaseUrl;
+    private PaypalService paypalService;
 
     @PostMapping
-    public ResponseEntity<?> createOrder(@RequestBody Order order, HttpServletRequest request) {
+    public ResponseEntity<?> createOrder(@RequestBody Order order) {
         String stockError = orderService.validateStock(order);
         if (stockError != null) {
             return ResponseEntity.badRequest().body(Map.of("message", stockError));
@@ -48,29 +43,32 @@ public class OrderController {
         order.setPaymentMethod(paymentMethod);
         order.setStatus("PENDING");
 
-        if ("VNPAY".equalsIgnoreCase(paymentMethod)) {
-            String txnRef = "FIG" + System.currentTimeMillis();
-            order.setVnpTxnRef(txnRef);
+        if ("PAYPAL".equalsIgnoreCase(paymentMethod)) {
             order.setPaymentStatus("UNPAID");
             Order saved = orderService.save(order);
 
-            String clientIp = request.getRemoteAddr();
-            long amountVnd = saved.getTotalAmount() != null
-                    ? Math.round(saved.getTotalAmount())
-                    : 0L;
-            String paymentUrl = vnpayService.createPaymentUrl(
-                    amountVnd,
-                    txnRef,
-                    "Thanh toan don hang " + saved.getId(),
-                    clientIp
-            );
-            return ResponseEntity.ok(Map.of(
-                    "order", saved,
-                    "paymentUrl", paymentUrl,
-                    "message", "Chuyển sang VNPay để thanh toán"
-            ));
+            String txnRef = "FIG" + saved.getId() + System.currentTimeMillis();
+            double amount = saved.getTotalAmount() != null ? saved.getTotalAmount() : 0;
+
+            try {
+                Map<String, Object> paypalResult = paypalService.createOrder(amount, "USD", txnRef);
+                String paypalOrderId = (String) paypalResult.get("paypalOrderId");
+                saved.setPaypalOrderId(paypalOrderId);
+                orderService.save(saved);
+
+                return ResponseEntity.ok(Map.of(
+                        "order", saved,
+                        "approvalUrl", paypalResult.get("approvalUrl"),
+                        "paypalOrderId", paypalOrderId,
+                        "message", "Chuyển sang PayPal để thanh toán"
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Lỗi kết nối PayPal: " + e.getMessage()));
+            }
         }
 
+        // COD - thanh toán khi nhận hàng
         order.setPaymentStatus("PAID");
         try {
             orderService.deductStock(order);

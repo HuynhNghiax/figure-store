@@ -53,10 +53,10 @@ export default function Checkout() {
 
       const result = await response.json();
       if (response.ok) {
-        if (paymentMethod === 'VNPAY' && result.paymentUrl) {
-          toast.success("Chuyển sang cổng VNPay...");
+        if (paymentMethod === 'PAYPAL' && result.approvalUrl) {
+          toast.success("Chuyển sang PayPal...");
           clearCart();
-          window.location.href = result.paymentUrl;
+          window.location.href = result.approvalUrl;
           return;
         }
         toast.success("Đặt hàng thành công!");
@@ -93,10 +93,10 @@ export default function Checkout() {
             </button>
             <button
               type="button"
-              onClick={() => setPaymentMethod('VNPAY')}
-              className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition ${paymentMethod === 'VNPAY' ? 'bg-blue-600 border-blue-600 text-white' : 'border-white/10 text-gray-500'}`}
+              onClick={() => setPaymentMethod('PAYPAL')}
+              className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition ${paymentMethod === 'PAYPAL' ? 'bg-blue-600 border-blue-600 text-white' : 'border-white/10 text-gray-500'}`}
             >
-              VNPay — Thẻ / QR
+              PayPal — Thẻ quốc tế
             </button>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function Checkout() {
             disabled={loading}
             className="w-full bg-orange-600 text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95 disabled:opacity-50"
           >
-            {loading ? 'Đang xử lý...' : paymentMethod === 'VNPAY' ? 'Thanh toán VNPay' : 'Xác nhận đặt hàng'}
+            {loading ? 'Đang xử lý...' : paymentMethod === 'PAYPAL' ? 'Thanh toán PayPal' : 'Xác nhận đặt hàng'}
           </button>
         </div>
       </div>

@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserId(Long userId);
-    Optional<Order> findByVnpTxnRef(String vnpTxnRef);
+    Optional<Order> findByPaypalOrderId(String paypalOrderId);
 }

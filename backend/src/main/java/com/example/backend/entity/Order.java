@@ -20,7 +20,7 @@ public class Order {
     private String status = "PENDING";
     private String paymentStatus = "UNPAID";
     private String paymentMethod = "COD";
-    private String vnpTxnRef;
+    private String paypalOrderId;
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private Long userId;
