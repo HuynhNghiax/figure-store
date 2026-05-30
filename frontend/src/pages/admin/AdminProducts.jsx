@@ -20,10 +20,12 @@ export default function AdminProducts() {
     price: '', 
     brand: 'Bandai', 
     imageUrl: '', 
+    images: '', 
     stock: 10, 
     isPreOrder: false 
   });
   const [brandInputMode, setBrandInputMode] = useState('select');
+  const [extraImages, setExtraImages] = useState([]);
 
   const fetchProducts = () => {
     fetch(`${API_BASE}/api/products/admin`, { headers: getAdminHeaders() })
@@ -61,9 +63,51 @@ export default function AdminProducts() {
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const handleOpenEdit = (product) => {
-    setFormData(product);
+    setFormData({ ...product, images: product.images || '' });
+    try {
+      setExtraImages(product.images ? JSON.parse(product.images) : []);
+    } catch {
+      setExtraImages([]);
+    }
     setIsEdit(true);
     setShowModal(true);
+  };
+
+  const handleExtraImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const loadingToast = toast.loading(`Đang tải ${files.length} ảnh phụ...`);
+    const uploadedUrls = [];
+
+    for (const file of files) {
+      const data = new FormData();
+      data.append("file", file);
+      try {
+        const token = getToken();
+        const response = await fetch(`${API_BASE}/api/products/upload`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: data,
+        });
+        const result = await response.json();
+        if (response.ok) uploadedUrls.push(result.imageUrl);
+      } catch {}
+    }
+
+    toast.dismiss(loadingToast);
+    if (uploadedUrls.length > 0) {
+      const newExtras = [...extraImages, ...uploadedUrls];
+      setExtraImages(newExtras);
+      setFormData(prev => ({ ...prev, images: JSON.stringify(newExtras) }));
+      toast.success(`Đã thêm ${uploadedUrls.length} ảnh phụ!`);
+    }
+  };
+
+  const removeExtraImage = (index) => {
+    const newExtras = extraImages.filter((_, i) => i !== index);
+    setExtraImages(newExtras);
+    setFormData(prev => ({ ...prev, images: JSON.stringify(newExtras) }));
   };
 
   const handleFileChange = async (e) => {
@@ -401,7 +445,36 @@ export default function AdminProducts() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 mt-10">
+              {formData.imageUrl && (
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest block">Ảnh phụ (tải nhiều ảnh)</label>
+                  <input 
+                    type="file" 
+                    multiple
+                    accept="image/*" 
+                    onChange={handleExtraImageUpload}
+                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-600/10 file:text-blue-500 hover:file:bg-blue-600 hover:file:text-white file:transition-all w-full"
+                  />
+                  {extraImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {extraImages.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <img src={imageUrl(url)} className="w-16 h-16 rounded-xl object-cover border border-white/10" alt="" />
+                          <button
+                            type="button"
+                            onClick={() => removeExtraImage(idx)}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-4 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="text-[10px] font-bold uppercase px-8 py-4 hover:text-white text-gray-500">Hủy</button>
                 <button type="submit" disabled={uploading} className="bg-orange-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-50">Xác nhận lưu</button>
               </div>

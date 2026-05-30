@@ -11,6 +11,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [rating, setRating] = useState(5);
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
@@ -67,6 +68,27 @@ export default function ProductDetail() {
     }
   };
 
+  const allImages = (() => {
+    if (!product) return [];
+    const main = imageUrl(product.imageUrl);
+    let extras = [];
+    try {
+      if (product.images) {
+        const parsed = JSON.parse(product.images);
+        if (Array.isArray(parsed)) extras = parsed;
+      }
+    } catch {}
+    return [main, ...extras.map(u => imageUrl(u))];
+  })();
+
+  const goToPrev = () => {
+    setCurrentImgIndex(i => (i === 0 ? allImages.length - 1 : i - 1));
+  };
+
+  const goToNext = () => {
+    setCurrentImgIndex(i => (i === allImages.length - 1 ? 0 : i + 1));
+  };
+
   if (loading) return (
     <div className="max-w-6xl mx-auto px-6 py-20 min-h-screen animate-pulse">
       <div className="h-4 bg-white/5 rounded w-24 mb-10"></div>
@@ -102,8 +124,61 @@ export default function ProductDetail() {
       <Link to="/" className="text-gray-500 text-[10px] uppercase tracking-[0.3em] font-bold hover:text-orange-500 mb-10 inline-block">← Trở về</Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
-        <div className="rounded-[40px] overflow-hidden border border-white/5 shadow-2xl">
-          <img src={imageUrl(product.imageUrl)} className="w-full object-cover" alt={product.name} />
+        {/* Image Slider */}
+        <div>
+          <div className="rounded-[40px] overflow-hidden border border-white/5 shadow-2xl relative bg-black group">
+            <img
+              key={currentImgIndex}
+              src={allImages[currentImgIndex]}
+              className="w-full object-cover aspect-square"
+              alt={product.name}
+            />
+
+            {allImages.length > 1 && (
+              <>
+                <button
+                  onClick={goToPrev}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-orange-600 transition text-lg opacity-0 group-hover:opacity-100"
+                >
+                  ←
+                </button>
+                <button
+                  onClick={goToNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-orange-600 transition text-lg opacity-0 group-hover:opacity-100"
+                >
+                  →
+                </button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {allImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImgIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        idx === currentImgIndex ? 'bg-orange-500 w-4' : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {allImages.length > 1 && (
+            <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+              {allImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImgIndex(idx)}
+                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    idx === currentImgIndex ? 'border-orange-500 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

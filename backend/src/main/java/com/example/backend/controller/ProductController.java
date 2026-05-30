@@ -74,6 +74,9 @@ public class ProductController {
             product.setImageUrl(productDetails.getImageUrl());
             product.setStock(productDetails.getStock());
             product.setIsPreOrder(productDetails.getIsPreOrder());
+            if (productDetails.getImages() != null) {
+                product.setImages(productDetails.getImages());
+            }
             return ResponseEntity.ok(productRepository.save(product));
         }).orElse(ResponseEntity.notFound().build());
     }

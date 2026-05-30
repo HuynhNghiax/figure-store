@@ -9,6 +9,7 @@ import lombok.Data;
 @Entity
 @Table(name = "products")
 @Data
+@Access(AccessType.FIELD)
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,12 +32,27 @@ public class Product {
     @Column(name = "image_url", nullable = false)
     private String imageUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String images;
+
     @NotNull(message = "Số lượng kho không được để trống!")
     @Min(value = 0, message = "Số lượng tồn kho không được nhỏ hơn 0!")
     @Column(nullable = false)
     private Integer stock;
 
     private Boolean isPreOrder = false;
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getImages() {
+        return images;
+    }
+
+    public void setImages(String images) {
+        this.images = images;
+    }
 
     private Boolean deleted = false;
 }

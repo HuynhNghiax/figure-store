@@ -24,7 +24,7 @@ export default function ProductCard({ item }) {
     <div className="bg-[#111] rounded-[32px] border border-white/5 overflow-hidden flex flex-col group hover:border-white/10 transition-all relative">
       
       {/* 1. Phần Ảnh sản phẩm + Tag trạng thái */}
-      <div className="relative aspect-square bg-black overflow-hidden">
+      <Link to={`/product/${item.id}`} className="relative aspect-square bg-black overflow-hidden block">
         <img 
           src={imageUrl(item.imageUrl)} 
           alt={item.name} 
@@ -44,7 +44,7 @@ export default function ProductCard({ item }) {
             Pre-Order
           </div>
         ) : null}
-      </div>
+      </Link>
 
       {/* 2. Phần Thông tin chữ nghĩa */}
       <div className="p-6 flex-1 flex flex-col justify-between space-y-4">

@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from 'react';
+import { getStoredUser } from '../utils/api';
 
 const CartContext = createContext();
 
@@ -30,6 +31,12 @@ export const CartProvider = ({ children }) => {
   };
 
   const addToCartWithCheck = (product, onReject) => {
+    // Kiểm tra đăng nhập
+    const user = getStoredUser();
+    if (!user) {
+      onReject?.('Vui lòng đăng nhập để mua hàng!');
+      return false;
+    }
     const existing = cartItems.find((i) => i.id === product.id);
     const nextQty = (existing?.quantity || 0) + 1;
     if (nextQty > product.stock) {
