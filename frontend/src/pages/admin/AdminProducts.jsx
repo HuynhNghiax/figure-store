@@ -92,7 +92,10 @@ export default function AdminProducts() {
         });
         const result = await response.json();
         if (response.ok) uploadedUrls.push(result.imageUrl);
-      } catch {}
+      } catch (error){
+        console.error(error);
+
+      }
     }
 
     toast.dismiss(loadingToast);

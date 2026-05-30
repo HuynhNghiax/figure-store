@@ -77,7 +77,9 @@ export default function ProductDetail() {
         const parsed = JSON.parse(product.images);
         if (Array.isArray(parsed)) extras = parsed;
       }
-    } catch {}
+    } catch (error) {
+      console.error(error);
+    }
     return [main, ...extras.map(u => imageUrl(u))];
   })();
 
