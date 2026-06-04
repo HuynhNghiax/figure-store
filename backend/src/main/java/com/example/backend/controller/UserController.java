@@ -1,7 +1,11 @@
 package com.example.backend.controller;
 
+import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,8 +22,30 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+    public ResponseEntity<?> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        if (search != null && !search.isBlank()) {
+            return ResponseEntity.ok(userRepository.findByUsernameContainingIgnoreCase(search, pageable));
+        }
+        return ResponseEntity.ok(userRepository.findAll(pageable));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, String> data) {
+        return userRepository.findById(id).map(user -> {
+            if (data.containsKey("role")) {
+                user.setRole(data.get("role"));
+            }
+            if (data.containsKey("email")) {
+                user.setEmail(data.get("email"));
+            }
+            userRepository.save(user);
+            return ResponseEntity.ok().body(Map.of("message", "Cập nhật thông tin người dùng thành công!"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

@@ -53,7 +53,12 @@ export default function Navbar() {
         </div>
 
         {/* Auth & Cart */}
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-5">
+          {user && (
+            <Link to="/wishlist" className="text-white text-lg hover:text-orange-500 transition" title="Yêu thích">
+              🤍
+            </Link>
+          )}
           <Link to="/cart" className="relative text-white text-xl">
              🛒 
              {totalItems > 0 && (

@@ -40,6 +40,8 @@ public class SecurityConfig {
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/payments/paypal-return").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
+                .requestMatchers("/api/categories/**").permitAll()
+                .requestMatchers("/api/coupons/validate").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
