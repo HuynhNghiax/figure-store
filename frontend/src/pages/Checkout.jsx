@@ -17,8 +17,37 @@ export default function Checkout() {
     address: ''
   });
 
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState(null);
+
   const isValidPhone = (phone) => {
     return /^(0[3|5|7|8|9])[0-9]{8}$/.test(phone);
+  };
+
+  const finalPrice = totalPrice - (totalPrice * couponDiscount / 100);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return toast.error("Vui lòng nhập mã giảm giá!");
+    try {
+      const res = await fetch(`${API_BASE}/api/coupons/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCouponDiscount(data.discountPercent);
+        setCouponApplied(data);
+        toast.success(`Áp dụng mã giảm ${data.discountPercent}% thành công!`);
+      } else {
+        toast.error(data.message);
+        setCouponDiscount(0);
+        setCouponApplied(null);
+      }
+    } catch {
+      toast.error("Lỗi kết nối!");
+    }
   };
 
   const handleConfirmOrder = async () => {
@@ -34,7 +63,7 @@ export default function Checkout() {
     const orderData = {
       ...customer,
       userId: user ? user.id : null,
-      totalAmount: totalPrice,
+      totalAmount: finalPrice,
       paymentMethod,
       items: cartItems.map(item => ({
         productId: item.id,
@@ -82,7 +111,7 @@ export default function Checkout() {
           <input onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} type="text" placeholder="Số điện thoại" className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white" />
           <textarea onChange={(e) => setCustomer({ ...customer, address: e.target.value })} placeholder="Địa chỉ nhận mô hình" rows="3" className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white"></textarea>
 
-          <h3 className="text-xs font-black uppercase text-gray-500 tracking-widest italic pt-4">Phương thức thanh toán</h3>
+          <h3 className="text-xs font-black uppercase text-gray-500 tracking-widest italic">Phương thức thanh toán</h3>
           <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
@@ -102,8 +131,40 @@ export default function Checkout() {
         </div>
 
         <div className="bg-orange-600/5 border border-orange-600/20 p-10 rounded-[40px] h-fit flex flex-col items-center">
-          <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">Tổng số tiền thanh toán</p>
-          <div className="text-6xl font-black text-orange-500 mb-10 italic">{totalPrice.toLocaleString()}đ</div>
+          {/* Mã giảm giá */}
+          <div className="w-full mb-6">
+            <h3 className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-3">Mã giảm giá</h3>
+            <div className="flex gap-3">
+              <input
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                placeholder="Nhập mã giảm giá..."
+                className="flex-1 bg-black border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-orange-500 text-white text-sm"
+              />
+              <button
+                onClick={handleApplyCoupon}
+                className="bg-green-700 text-white px-6 py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-green-600 transition"
+              >
+                Áp dụng
+              </button>
+            </div>
+            {couponApplied && (
+              <p className="text-green-500 text-[10px] font-bold mt-2">
+                ✅ Giảm {couponDiscount}% (mã: {couponApplied.code})
+              </p>
+            )}
+          </div>
+
+          <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">
+            {couponDiscount > 0 ? 'Tổng tiền hàng' : 'Tổng số tiền thanh toán'}
+          </p>
+          {couponDiscount > 0 && (
+            <div className="text-center mb-2">
+              <div className="text-2xl font-black text-gray-500 line-through italic">{totalPrice.toLocaleString()}đ</div>
+            </div>
+          )}
+          <div className="text-5xl font-black text-orange-500 mb-8 italic">{finalPrice.toLocaleString()}đ</div>
+
           <button
             onClick={handleConfirmOrder}
             disabled={loading}

@@ -9,7 +9,9 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import Profile from './pages/Profile'; // Đã import chính xác
+import ResetPassword from './pages/ResetPassword';
+import Wishlist from './pages/Wishlist';
+import Profile from './pages/Profile';
 import OrderSuccess from './pages/OrderSuccess';
 import PaymentResult from './pages/PaymentResult';
 import { getStoredUser, getToken } from './utils/api';
@@ -19,7 +21,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
-// Thành phần bảo vệ Route cho Admin
+
 const ProtectedRoute = ({ children }) => {
   const user = getStoredUser();
   const token = getToken();
@@ -33,16 +35,13 @@ function App() {
         <div className="bg-[#0a0a0a] min-h-screen text-white font-sans flex flex-col">
           <Toaster position="top-right" />
 
-          {/* Ẩn Navbar khi vào trang quản trị Admin */}
           <Routes>
             <Route path="/admin/*" element={null} />
             <Route path="*" element={<Navbar />} />
           </Routes>
 
-          {/* Khu vực nội dung chính của website */}
           <div className="flex-1"> 
             <Routes>
-              {/* Luồng Client công cộng */}
               <Route path="/" element={<Home />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
@@ -50,11 +49,12 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/profile" element={<Profile />} /> {/* Kích hoạt trang lịch sử đơn hàng */}
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/payment/result" element={<PaymentResult />} />
               
-              {/* Luồng quản trị nội bộ Admin */}
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
               <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
@@ -63,7 +63,6 @@ function App() {
             </Routes>
           </div>
 
-          {/* Ẩn Footer khi vào trang quản trị Admin */}
           <Routes>
             <Route path="/admin/*" element={null} />
             <Route path="*" element={<Footer />} />
