@@ -71,7 +71,7 @@ export default function Register() {
     
     // Kiểm tra nhanh ở Frontend trước khi gọi API
     if (formData.password !== formData.confirmPassword) {
-      return toast.error("Mật khẩu không khớp, kiểm tra lại đi Nghĩa!");
+      return toast.error("Mật khẩu xác nhận không khớp, vui lòng kiểm tra lại!");
     }
 
     if (formData.password.length < 6) {
@@ -106,7 +106,7 @@ export default function Register() {
       }
     } catch {
       toast.dismiss(loading);
-      toast.error("Server đang ngủ gật rồi, kiểm tra lại Backend đi Nghĩa!");
+      toast.error("Máy chủ hiện không phản hồi, vui lòng thử lại sau!");
     }
   };
 
@@ -133,7 +133,7 @@ export default function Register() {
         navigate("/login");
       } else {
         // Nhập sai OTP thì ở lại trang OTP để nhập lại, không cho về Step 1
-        toast.error(data.message || "Mã sai rồi, kiểm tra lại trong Mail nhé!");
+        toast.error(data.message || "Mã xác thực không đúng, vui lòng kiểm tra lại email!");
       }
     } catch {
       toast.dismiss(loading);
