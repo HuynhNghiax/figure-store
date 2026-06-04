@@ -35,12 +35,17 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String images;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @NotNull(message = "Số lượng kho không được để trống!")
     @Min(value = 0, message = "Số lượng tồn kho không được nhỏ hơn 0!")
     @Column(nullable = false)
     private Integer stock;
 
     private Boolean isPreOrder = false;
+
+    private Long categoryId;
 
     public String getImageUrl() {
         return imageUrl;

@@ -22,7 +22,8 @@ export default function AdminProducts() {
     imageUrl: '', 
     images: '', 
     stock: 10, 
-    isPreOrder: false 
+    isPreOrder: false,
+    description: ''
   });
   const [brandInputMode, setBrandInputMode] = useState('select');
   const [extraImages, setExtraImages] = useState([]);
@@ -383,6 +384,14 @@ export default function AdminProducts() {
                   required 
                 />
               </div>
+
+              <textarea
+                value={formData.description}
+                placeholder="Mô tả sản phẩm..."
+                rows={4}
+                className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-white text-sm"
+                onChange={e => setFormData({...formData, description: e.target.value})}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

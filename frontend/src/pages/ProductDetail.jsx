@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
-import { API_BASE, authFetch, getStoredUser, imageUrl } from '../utils/api';
+import { API_BASE, authFetch, getStoredUser, getAuthHeaders, imageUrl } from '../utils/api';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -184,10 +184,39 @@ export default function ProductDetail() {
         </div>
 
         <div>
-          <span className="bg-orange-600/10 text-orange-500 px-4 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">{product.brand}</span>
-          <h1 className="text-5xl font-black italic uppercase leading-tight mb-8">{product.name}</h1>
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="bg-orange-600/10 text-orange-500 px-4 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">{product.brand}</span>
+              <h1 className="text-5xl font-black italic uppercase leading-tight mb-8">{product.name}</h1>
+            </div>
+            {user && (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_BASE}/api/wishlist`, {
+                      method: "POST",
+                      headers: getAuthHeaders(),
+                      body: JSON.stringify({ productId: product.id })
+                    });
+                    const data = await res.json();
+                    if (res.ok) toast.success("Đã thêm vào yêu thích!");
+                    else toast.error(data.message);
+                  } catch { toast.error("Lỗi kết nối!"); }
+                }}
+                className="text-2xl hover:scale-110 transition-transform"
+                title="Yêu thích"
+              >
+                🤍
+              </button>
+            )}
+          </div>
           <div className="text-4xl font-black text-orange-500 italic mb-4">{product.price.toLocaleString()}đ</div>
-          <p className="text-gray-500 text-sm mb-10">Còn {product.stock} sản phẩm trong kho</p>
+          <p className="text-gray-500 text-sm mb-6">Còn {product.stock} sản phẩm trong kho</p>
+          {product.description && (
+            <p className="text-gray-400 text-sm leading-relaxed mb-6 border-l-2 border-orange-500/30 pl-4 italic">
+              {product.description}
+            </p>
+          )}
 
           <button
             onClick={() => {

@@ -74,6 +74,7 @@ public class ProductController {
             product.setImageUrl(productDetails.getImageUrl());
             product.setStock(productDetails.getStock());
             product.setIsPreOrder(productDetails.getIsPreOrder());
+            product.setDescription(productDetails.getDescription());
             if (productDetails.getImages() != null) {
                 product.setImages(productDetails.getImages());
             }
