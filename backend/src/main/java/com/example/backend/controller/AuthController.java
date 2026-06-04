@@ -3,20 +3,26 @@ package com.example.backend.controller;
 import com.example.backend.dto.GoogleLoginDTO;
 import com.example.backend.dto.LoginRequestDTO;
 import com.example.backend.dto.RegisterDTO;
+import com.example.backend.entity.ResetToken;
 import com.example.backend.entity.User;
+import com.example.backend.repository.ResetTokenRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.security.SecurityUtils;
 import com.example.backend.service.AuthService;
 import com.example.backend.service.GoogleAuthService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,7 +33,9 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
+    private final ResetTokenRepository resetTokenRepository;
     private final String mailFrom;
+    private final String frontendUrl;
 
     public AuthController(
             UserRepository userRepository,
@@ -35,13 +43,17 @@ public class AuthController {
             PasswordEncoder passwordEncoder,
             AuthService authService,
             GoogleAuthService googleAuthService,
-            @org.springframework.beans.factory.annotation.Value("${spring.mail.username:}") String mailFrom) {
+            ResetTokenRepository resetTokenRepository,
+            @org.springframework.beans.factory.annotation.Value("${spring.mail.username:}") String mailFrom,
+            @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.mailSender = mailSender;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
         this.googleAuthService = googleAuthService;
+        this.resetTokenRepository = resetTokenRepository;
         this.mailFrom = mailFrom;
+        this.frontendUrl = frontendUrl;
     }
 
     @PostMapping("/register")
@@ -117,45 +129,98 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> data) {
-        String username = data.get("username");
-        if (username == null || username.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập tên tài khoản!"));
+        String email = data.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập email!"));
         }
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(400).body(Map.of("message", "Không tìm thấy tài khoản!"));
+            return ResponseEntity.status(400).body(Map.of("message", "Không tìm thấy tài khoản với email này!"));
         }
         User user = userOpt.get();
-        String otp = String.format("%06d", new Random().nextInt(999999));
-        user.setOtp(otp);
-        userRepository.save(user);
+
+        // Tạo token duy nhất, hết hạn sau 5 phút
+        String token = UUID.randomUUID().toString();
+        ResetToken resetToken = new ResetToken();
+        resetToken.setToken(token);
+        resetToken.setUser(user);
+        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(5));
+        resetToken.setUsed(false);
+        resetTokenRepository.save(resetToken);
+
+        // Gửi link reset qua email
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
         try {
-            sendOtpEmail(user.getEmail(), otp, "FIGHUB - MÃ KHÔI PHỤC MẬT KHẨU");
-            return ResponseEntity.ok().body(Map.of("message", "Mã khôi phục đã được gửi về email của bạn!"));
+            sendResetEmail(user.getEmail(), resetLink);
+            return ResponseEntity.ok().body(Map.of("message", "Link khôi phục mật khẩu đã được gửi về email của bạn! Link có hiệu lực trong 5 phút."));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "Lỗi gửi Mail!"));
         }
     }
 
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> data, @RequestHeader("Authorization") String authHeader) {
+        String oldPassword = data.get("oldPassword");
+        String newPassword = data.get("newPassword");
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu phải có ít nhất 6 ký tự!"));
+        }
+        Long userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("message", "Không tìm thấy tài khoản!"));
+        }
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            return ResponseEntity.status(400).body(Map.of("message", "Mật khẩu cũ không chính xác!"));
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return ResponseEntity.ok().body(Map.of("message", "Đổi mật khẩu thành công!"));
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> data) {
-        String username = data.get("username");
-        String otp = data.get("otp");
+        String token = data.get("token");
         String newPassword = data.get("newPassword");
-        if (username == null || otp == null || newPassword == null || newPassword.length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Thông tin không hợp lệ hoặc mật khẩu quá ngắn!"));
+
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Token không hợp lệ!"));
         }
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (user.getOtp() != null && user.getOtp().equals(otp)) {
-                user.setPassword(passwordEncoder.encode(newPassword));
-                user.setOtp(null);
-                userRepository.save(user);
-                return ResponseEntity.ok().body(Map.of("message", "Đổi mật khẩu thành công! Hãy đăng nhập lại."));
-            }
+        if (newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu phải có ít nhất 6 ký tự!"));
         }
-        return ResponseEntity.status(400).body(Map.of("message", "Mã OTP không chính xác!"));
+
+        Optional<ResetToken> tokenOpt = resetTokenRepository.findByToken(token);
+        if (tokenOpt.isEmpty()) {
+            return ResponseEntity.status(400).body(Map.of("message", "Link khôi phục không hợp lệ hoặc đã được sử dụng!"));
+        }
+
+        ResetToken resetToken = tokenOpt.get();
+
+        // Kiểm tra đã sử dụng chưa
+        if (resetToken.isUsed()) {
+            return ResponseEntity.status(400).body(Map.of("message", "Link khôi phục này đã được sử dụng! Vui lòng yêu cầu link mới."));
+        }
+
+        // Kiểm tra hết hạn chưa
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(400).body(Map.of("message", "Link khôi phục đã hết hạn! Vui lòng yêu cầu link mới."));
+        }
+
+        // Đánh dấu token đã dùng
+        resetToken.setUsed(true);
+        resetTokenRepository.save(resetToken);
+
+        // Đổi mật khẩu
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok().body(Map.of("message", "Đổi mật khẩu thành công! Hãy đăng nhập lại."));
     }
 
     private void sendOtpEmail(String email, String otp, String subject) {
@@ -164,6 +229,20 @@ public class AuthController {
         message.setTo(email);
         message.setSubject(subject);
         message.setText("Mã xác thực của bạn là: " + otp + "\nVui lòng không chia sẻ mã này với bất kỳ ai.");
+        mailSender.send(message);
+    }
+
+    private void sendResetEmail(String email, String resetLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        if (mailFrom != null && !mailFrom.isBlank()) message.setFrom(mailFrom);
+        message.setTo(email);
+        message.setSubject("FIGHUB - KHÔI PHỤC MẬT KHẨU");
+        message.setText(
+            "Bạn đã yêu cầu khôi phục mật khẩu FigHub.\n\n" +
+            "Nhấp vào link bên dưới để đặt lại mật khẩu (hiệu lực trong 5 phút, chỉ sử dụng 1 lần):\n\n" +
+            resetLink + "\n\n" +
+            "Nếu bạn không yêu cầu khôi phục, vui lòng bỏ qua email này."
+        );
         mailSender.send(message);
     }
 }
