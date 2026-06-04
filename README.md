@@ -1,6 +1,6 @@
 # FigHub — Figure Store
 
-Full-stack cửa hàng mô hình: **React + Vite**, **Spring Boot + JWT**, **PostgreSQL**, **VNPay**, **Google OAuth**.
+Full-stack cửa hàng mô hình: **React + Vite**, **Spring Boot + JWT**, **PostgreSQL**, **PayPal**, **Google OAuth**.
 
 ## Tính năng
 
@@ -9,7 +9,7 @@ Full-stack cửa hàng mô hình: **React + Vite**, **Spring Boot + JWT**, **Pos
 - JWT + Spring Security (không còn header `X-User-Role` giả mạo)
 - Sản phẩm phân trang API, upload ảnh, soft delete
 - Giỏ hàng kiểm tra tồn kho
-- Đặt hàng COD hoặc VNPay Sandbox
+- Đặt hàng COD hoặc PayPal
 - Review gắn `userId` (bắt buộc đăng nhập)
 - Admin dashboard, quản lý đơn / SP / user
 - Docker Compose + GitHub Actions CI
@@ -30,8 +30,8 @@ $env:JWT_SECRET="chuoi-bi-mat-jwt-it-nhat-32-ky-tu"
 $env:MAIL_USERNAME="email@gmail.com"
 $env:MAIL_APP_PASSWORD="gmail_app_password"
 $env:GOOGLE_CLIENT_ID="xxx.apps.googleusercontent.com"
-$env:VNPAY_TMN_CODE="DEMO"
-$env:VNPAY_HASH_SECRET="secret_sandbox"
+$env:PAYPAL_CLIENT_ID="your_paypal_client_id"
+$env:PAYPAL_CLIENT_SECRET="your_paypal_secret"
 ```
 
 Xem đầy đủ: `backend/application-local.properties.example`
@@ -82,12 +82,19 @@ docker compose up --build
 
 ---
 
-## VNPay Sandbox
+## PayPal Sandbox
 
-1. Đăng ký tại https://sandbox.vnpayment.vn/  
-2. Lấy `TMN_CODE` và `HASH_SECRET`  
-3. Cấu hình `VNPAY_RETURN_URL=http://localhost:8080/api/payments/vnpay-return`  
-4. Checkout → chọn **VNPay** → redirect cổng thanh toán  
+1. Đăng ký tại https://developer.paypal.com/dashboard/  
+2. Tạo **REST API apps** → lấy `Client ID` và `Secret`  
+3. Cấu hình trong `application.properties`:
+   ```
+   paypal.client-id=<your_client_id>
+   paypal.client-secret=<your_secret>
+   paypal.mode=sandbox
+   ```
+4. Checkout → chọn **PayPal** → redirect cổng thanh toán PayPal  
+
+Callback URL: `http://localhost:8080/api/payments/paypal-return`
 
 ---
 
@@ -121,4 +128,3 @@ figure-store/
 ├── uploads/          Ảnh sản phẩm
 ├── docker-compose.yml
 └── .github/workflows/
-```

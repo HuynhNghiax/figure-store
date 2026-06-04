@@ -12,6 +12,7 @@ export default function ProductDetail() {
   const [newComment, setNewComment] = useState("");
   const [rating, setRating] = useState(5);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
@@ -31,6 +32,17 @@ export default function ProductDetail() {
         if (revRes.ok) {
           const revData = await revRes.json();
           setReviews(revData);
+        }
+
+        // Check wishlist status
+        if (user) {
+          const wishRes = await fetch(`${API_BASE}/api/wishlist`, {
+            headers: getAuthHeaders()
+          });
+          if (wishRes.ok) {
+            const wishData = await wishRes.json();
+            setIsFavorited(wishData.some(w => w.productId === prodData.id));
+          }
         }
       } catch (error) {
         console.error("Lỗi tải dữ liệu:", error);
@@ -193,20 +205,38 @@ export default function ProductDetail() {
               <button
                 onClick={async () => {
                   try {
-                    const res = await fetch(`${API_BASE}/api/wishlist`, {
-                      method: "POST",
-                      headers: getAuthHeaders(),
-                      body: JSON.stringify({ productId: product.id })
-                    });
-                    const data = await res.json();
-                    if (res.ok) toast.success("Đã thêm vào yêu thích!");
-                    else toast.error(data.message);
+                    if (isFavorited) {
+                      const res = await fetch(`${API_BASE}/api/wishlist/${product.id}`, {
+                        method: "DELETE",
+                        headers: getAuthHeaders(),
+                      });
+                      if (res.ok) {
+                        setIsFavorited(false);
+                        toast.success("Đã xoá khỏi yêu thích!");
+                      } else {
+                        const data = await res.json().catch(() => ({}));
+                        toast.error(data.message || `Lỗi ${res.status}`);
+                      }
+                    } else {
+                      const res = await fetch(`${API_BASE}/api/wishlist`, {
+                        method: "POST",
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ productId: product.id })
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (res.ok) {
+                        setIsFavorited(true);
+                        toast.success("Đã thêm vào yêu thích!");
+                      } else {
+                        toast.error(data.message);
+                      }
+                    }
                   } catch { toast.error("Lỗi kết nối!"); }
                 }}
-                className="text-2xl hover:scale-110 transition-transform"
-                title="Yêu thích"
+                className={`text-2xl hover:scale-110 transition-transform ${isFavorited ? 'scale-110' : ''}`}
+                title={isFavorited ? "Bỏ yêu thích" : "Yêu thích"}
               >
-                🤍
+                {isFavorited ? '❤️' : '🤍'}
               </button>
             )}
           </div>

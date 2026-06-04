@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { API_BASE, authFetch, getAuthHeaders, getStoredUser, imageUrl } from '../utils/api';
@@ -6,12 +6,14 @@ import { API_BASE, authFetch, getAuthHeaders, getStoredUser, imageUrl } from '..
 export default function Wishlist() {
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState({});
-  const user = getStoredUser();
   const [loading, setLoading] = useState(true);
+  const userRef = useRef(getStoredUser());
+  const user = userRef.current;
 
   useEffect(() => {
     if (!user) {
       toast.error("Vui lòng đăng nhập!");
+      setLoading(false);
       return;
     }
 
@@ -45,7 +47,8 @@ export default function Wishlist() {
     })();
 
     return () => { cancelled = true; };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRemove = async (productId) => {
     try {
