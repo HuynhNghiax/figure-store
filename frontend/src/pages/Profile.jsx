@@ -32,7 +32,7 @@ export default function Profile() {
         toast.error("Lỗi tải danh sách đơn hàng!");
         setLoading(false);
       });
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();

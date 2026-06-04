@@ -23,9 +23,11 @@ export default function ProductCard({ item }) {
           const found = data.some(w => w.productId === item.id);
           setIsFavorited(found);
         }
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
     })();
-  }, []);
+  }, [user, item.id]);
 
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
@@ -59,7 +61,7 @@ export default function ProductCard({ item }) {
           toast.error(data.message || `Lỗi ${res.status}`);
         }
       }
-    } catch (e) { toast.error("Lỗi kết nối!"); }
+    } catch { toast.error("Lỗi kết nối!"); }
   };
 
   const handleAddToCart = (product) => {

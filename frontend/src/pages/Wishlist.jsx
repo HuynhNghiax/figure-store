@@ -6,14 +6,23 @@ import { API_BASE, authFetch, getAuthHeaders, getStoredUser, imageUrl } from '..
 export default function Wishlist() {
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState({});
-  const [loading, setLoading] = useState(true);
   const user = getStoredUser();
+  const [loading, setLoading] = useState(true);
 
-  const fetchWishlist = async () => {
-    try {
-      const res = await authFetch(`/api/wishlist`);
-      if (res.ok) {
+  useEffect(() => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập!");
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await authFetch(`/api/wishlist`);
+        if (!res.ok) return;
         const data = await res.json();
+        if (cancelled) return;
         setItems(data);
         const productMap = {};
         await Promise.all(data.map(async (item) => {
@@ -21,25 +30,22 @@ export default function Wishlist() {
             try {
               const prodRes = await fetch(`${API_BASE}/api/products/${item.productId}`);
               if (prodRes.ok) productMap[item.productId] = await prodRes.json();
-            } catch (e) {}
+            } catch {
+              // ignore
+            }
           }
         }));
+        if (cancelled) return;
         setProducts(productMap);
+      } catch {
+        toast.error("Lỗi tải danh sách yêu thích!");
+      } finally {
+        if (!cancelled) setTimeout(() => setLoading(false), 0);
       }
-    } catch (e) {
-      toast.error("Lỗi tải danh sách yêu thích!");
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
 
-  useEffect(() => {
-    if (!user) {
-      toast.error("Vui lòng đăng nhập!");
-      return;
-    }
-    fetchWishlist();
-  }, []);
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleRemove = async (productId) => {
     try {
@@ -50,12 +56,29 @@ export default function Wishlist() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success("Đã xóa khỏi yêu thích!");
-        fetchWishlist();
+        // Refetch wishlist after removal
+        const wishRes = await authFetch(`/api/wishlist`);
+        if (wishRes.ok) {
+          const newData = await wishRes.json();
+          setItems(newData);
+          const productMap = {};
+          await Promise.all(newData.map(async (item) => {
+            if (!productMap[item.productId]) {
+              try {
+                const prodRes = await fetch(`${API_BASE}/api/products/${item.productId}`);
+                if (prodRes.ok) productMap[item.productId] = await prodRes.json();
+              } catch {
+                // ignore
+              }
+            }
+          }));
+          setProducts(productMap);
+        }
       } else {
         toast.error(data.message || `Lỗi ${res.status}: Không thể xoá`);
       }
-    } catch (e) {
-      toast.error("Lỗi kết nối! " + e.message);
+    } catch {
+      toast.error("Lỗi kết nối!");
     }
   };
 

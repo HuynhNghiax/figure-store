@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { API_BASE } from '../utils/api';
@@ -11,13 +11,7 @@ export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [invalid, setInvalid] = useState(false);
-
-  useEffect(() => {
-    if (!token) {
-      setInvalid(true);
-    }
-  }, [token]);
+  const invalid = useMemo(() => !token, [token]);
 
   const handleReset = async (e) => {
     e.preventDefault();
