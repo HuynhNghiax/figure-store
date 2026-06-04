@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { authFetch, getStoredUser } from '../utils/api';
+import { authFetch, getStoredUser, API_BASE, getAuthHeaders } from '../utils/api';
 
 export default function Profile() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pwData, setPwData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const navigate = useNavigate();
   const user = getStoredUser();
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // Nếu chưa đăng nhập thì đá về trang login
     if (!user) {
       toast.error("Vui lòng đăng nhập để xem lịch sử đơn hàng!");
       navigate("/login");
       return;
     }
 
-    // Gọi API lấy đơn hàng theo UserId của khách
     authFetch(`/api/orders/user/${user.id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Không thể lấy dữ liệu đơn hàng");
@@ -35,6 +34,33 @@ export default function Profile() {
       });
   }, [navigate]);
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (pwData.newPassword !== pwData.confirmPassword) {
+      return toast.error("Mật khẩu xác nhận không khớp!");
+    }
+    if (pwData.newPassword.length < 6) {
+      return toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ oldPassword: pwData.oldPassword, newPassword: pwData.newPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setShowChangePassword(false);
+        setPwData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Lỗi kết nối!");
+    }
+  };
+
   if (loading) {
     return <div className="pt-40 text-center animate-pulse uppercase tracking-[0.5em] text-orange-500 font-black">Đang lục tìm đơn hàng của bạn...</div>;
   }
@@ -50,14 +76,60 @@ export default function Profile() {
           </div>
           <div>
             <h1 className="text-2xl font-black text-white uppercase italic tracking-tight">{user?.username}</h1>
-            <p className="text-xs text-gray-500 uppercase font-bold tracking-widest mt-1">Thành viên hạng kim cương</p>
+            <p className="text-xs text-gray-500 uppercase font-bold tracking-widest mt-1">{user?.email}</p>
           </div>
         </div>
-        <div className="bg-white/5 px-6 py-3 rounded-2xl border border-white/5 text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Đơn hàng đã đặt</p>
-          <p className="text-2xl font-black text-orange-500 italic">{orders.length} đơn</p>
+        <div className="flex items-center gap-4">
+          <div className="bg-white/5 px-6 py-3 rounded-2xl border border-white/5 text-center">
+            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Đơn hàng đã đặt</p>
+            <p className="text-2xl font-black text-orange-500 italic">{orders.length} đơn</p>
+          </div>
+          <button
+            onClick={() => setShowChangePassword(!showChangePassword)}
+            className="bg-white/5 hover:bg-orange-600/20 border border-white/10 px-4 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-orange-500 transition-all"
+          >
+            🔑 Đổi mật khẩu
+          </button>
         </div>
       </div>
+
+      {/* Form đổi mật khẩu */}
+      {showChangePassword && (
+        <div className="bg-[#161616] p-8 rounded-[32px] border border-white/5 mb-12 max-w-lg mx-auto">
+          <h3 className="text-sm font-black uppercase mb-6 text-orange-500 italic">Đổi mật khẩu</h3>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <input
+              type="password"
+              placeholder="Mật khẩu cũ"
+              value={pwData.oldPassword}
+              onChange={e => setPwData({...pwData, oldPassword: e.target.value})}
+              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Mật khẩu mới"
+              value={pwData.newPassword}
+              onChange={e => setPwData({...pwData, newPassword: e.target.value})}
+              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
+              required
+              minLength={6}
+            />
+            <input
+              type="password"
+              placeholder="Xác nhận mật khẩu mới"
+              value={pwData.confirmPassword}
+              onChange={e => setPwData({...pwData, confirmPassword: e.target.value})}
+              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
+              required
+              minLength={6}
+            />
+            <button className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest">
+              Cập nhật mật khẩu
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Danh sách lịch sử đơn hàng */}
       <div className="space-y-6">
@@ -67,7 +139,7 @@ export default function Profile() {
 
         {orders.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-white/5 rounded-[40px] bg-[#111]">
-            <p className="text-gray-500 italic text-sm mb-6 uppercase tracking-widest">Nghĩa ơi, bạn chưa đặt đơn hàng nào hết!</p>
+            <p className="text-gray-500 italic text-sm mb-6 uppercase tracking-widest">Bạn chưa đặt đơn hàng nào!</p>
             <Link to="/" className="bg-orange-600 text-white px-8 py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-orange-700 transition-all">
               Mua sắm ngay thôi
             </Link>
@@ -83,16 +155,42 @@ export default function Profile() {
                   <p className="text-[10px] text-gray-600 uppercase font-bold mt-1">Người nhận: {order.customerName} • {order.phone}</p>
                 </div>
                 
-                {/* Trạng thái hiển thị màu sắc chuyên nghiệp */}
-                <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                  order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
-                  order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
-                  'bg-green-500/10 text-green-500 border-green-500/20'
-                }`}>
-                  {order.status === 'PENDING' ? '⏳ Chờ xử lý' : 
-                   order.status === 'SHIPPED' ? '🚚 Đang giao hàng' : 
-                   '✓ Đã hoàn thành'}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                    order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
+                    order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
+                    'bg-green-500/10 text-green-500 border-green-500/20'
+                  }`}>
+                    {order.status === 'PENDING' ? '⏳ Chờ xử lý' : 
+                     order.status === 'SHIPPED' ? '🚚 Đang giao hàng' : 
+                     '✓ Đã hoàn thành'}
+                  </span>
+                  {order.status === 'PENDING' && (
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Bạn có chắc muốn huỷ đơn hàng này?")) return;
+                        try {
+                          const res = await fetch(`${API_BASE}/api/orders/${order.id}/cancel`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            toast.success(data.message);
+                            // Refresh
+                            const ordersRes = await authFetch(`/api/orders/user/${user.id}`);
+                            if (ordersRes.ok) setOrders(await ordersRes.json());
+                          } else {
+                            toast.error(data.message);
+                          }
+                        } catch { toast.error("Lỗi kết nối!"); }
+                      }}
+                      className="text-[9px] font-black uppercase text-red-500 hover:text-red-400 px-3 py-1.5 border border-red-500/20 rounded-full"
+                    >
+                      Huỷ đơn
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Thân đơn hàng: Danh sách các món đồ */}

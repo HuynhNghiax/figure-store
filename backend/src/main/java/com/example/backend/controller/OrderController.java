@@ -1,18 +1,27 @@
 package com.example.backend.controller;
 
 import com.example.backend.entity.Order;
+import com.example.backend.entity.User;
 import com.example.backend.repository.OrderRepository;
+import com.example.backend.repository.UserRepository;
 import com.example.backend.security.SecurityUtils;
 import com.example.backend.service.OrderService;
 import com.example.backend.service.PaypalService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -26,6 +35,15 @@ public class OrderController {
 
     @Autowired
     private PaypalService paypalService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
 
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody Order order) {
@@ -90,8 +108,41 @@ public class OrderController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public ResponseEntity<?> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        if (search != null && !search.isBlank()) {
+            try {
+                Long searchId = Long.parseLong(search);
+                return ResponseEntity.ok(orderRepository.findById(searchId)
+                        .map(List::of)
+                        .orElse(List.of()));
+            } catch (NumberFormatException e) {
+                return ResponseEntity.ok(Page.empty());
+            }
+        }
+        return ResponseEntity.ok(orderRepository.findAll(pageable));
+    }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelOrder(@PathVariable Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        return orderRepository.findById(id).map(order -> {
+            if (!order.getUserId().equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền huỷ đơn hàng này!"));
+            }
+            if (!"PENDING".equals(order.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Chỉ có thể huỷ đơn hàng đang chờ xử lý!"));
+            }
+            order.setStatus("CANCELLED");
+            orderRepository.save(order);
+            return ResponseEntity.ok().body(Map.of("message", "Đã huỷ đơn hàng thành công!"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/status")
@@ -104,6 +155,28 @@ public class OrderController {
         return orderRepository.findById(id).map(order -> {
             order.setStatus(newStatus);
             orderRepository.save(order);
+
+            // Gửi email thông báo cho user
+            if (order.getUserId() != null) {
+                Optional<User> userOpt = userRepository.findById(order.getUserId());
+                userOpt.ifPresent(user -> {
+                    try {
+                        String statusText = switch (newStatus) {
+                            case "SHIPPED" -> "đang được giao hàng";
+                            case "DELIVERED" -> "đã giao thành công";
+                            default -> "đã cập nhật: " + newStatus;
+                        };
+                        SimpleMailMessage msg = new SimpleMailMessage();
+                        if (mailFrom != null && !mailFrom.isBlank()) msg.setFrom(mailFrom);
+                        msg.setTo(user.getEmail());
+                        msg.setSubject("FIGHUB - CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG #FIG-" + order.getId());
+                        msg.setText("Xin chào " + user.getUsername() + ",\n\n"
+                                + "Đơn hàng #FIG-" + order.getId() + " của bạn " + statusText + ".\n\n"
+                                + "Cảm ơn bạn đã mua sắm tại FigHub!");
+                        mailSender.send(msg);
+                    } catch (Exception ignored) {}
+                });
+            }
             return ResponseEntity.ok().body(Map.of("message", "Cập nhật trạng thái đơn hàng thành công!"));
         }).orElse(ResponseEntity.notFound().build());
     }
