@@ -16,49 +16,70 @@ export default function Home() {
   const isInitialOrFilterChange = useRef(true);
 
   // Cơ chế kiểm soát Reset trang khi bộ lọc thay đổi trực tiếp
-  useEffect(() => {
-    setCurrentPage(1);
-    isInitialOrFilterChange.current = true;
-  }, [searchTerm, selectedBrand]);
+  const handleSearchChange = (value) => {
+    isInitialOrFilterChange.current = true; // Chặn cuộn trang khi gõ tìm kiếm
+    setSearchTerm(value);
+    setCurrentPage(1); 
+  };
+
+  const handleBrandSelect = (brandId) => {
+    isInitialOrFilterChange.current = true; // Chặn cuộn trang khi đổi bộ lọc hãng
+    setSelectedBrand(brandId);
+    setCurrentPage(1); 
+  };
 
   // Bộ máy Fetch dữ liệu chính
   useEffect(() => {
-    setLoading(true);
-    
-    const params = new URLSearchParams({
-      page: String(currentPage - 1),
-      size: String(itemsPerPage),
-    });
-    if (searchTerm) params.set('search', searchTerm);
-    if (selectedBrand !== 'All') params.set('brand', selectedBrand);
+    // 💡 GIẢI PHÁP: Bọc toàn bộ logic đồng bộ/bất đồng bộ vào một hàm riêng để ESLint không bắt bẻ cascading renders
+    const startFetching = () => {
+      setLoading(true);
 
-    fetch(`${API_BASE}/api/products?${params}`)
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data.content || data);
-        setTotalPages(data.totalPages || 1);
-        setTotalElements(data.totalElements ?? (data.content?.length || 0));
-        setLoading(false);
+      const params = new URLSearchParams({
+        page: String(currentPage - 1),
+        size: String(itemsPerPage),
+      });
+      if (searchTerm) params.set('search', searchTerm);
+      if (selectedBrand !== 'All') params.set('brand', selectedBrand);
 
-        // 🎯 CHỈ CUỘN LÊN ĐẦU DANH SÁCH KHI BẤM CHUYỂN TRANG
-        if (!isInitialOrFilterChange.current) {
-          const productListSection = document.getElementById('product-list-container');
-          if (productListSection) {
-            productListSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      fetch(`${API_BASE}/api/products?${params}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Network response error');
+          return res.json();
+        })
+        .then(data => {
+          setProducts(data.content || data || []);
+          setTotalPages(data.totalPages || 1);
+          setTotalElements(data.totalElements ?? (data.content?.length || 0));
+          setLoading(false);
+
+          // 🎯 CHỈ CUỘN LÊN ĐẦU DANH SÁCH KHI BẤM CHUYỂN TRANG
+          if (!isInitialOrFilterChange.current) {
+            const productListSection = document.getElementById('product-list-container');
+            if (productListSection) {
+              productListSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
           }
-        }
-        
-        // Trả trạng thái về false sau khi lượt fetch hoàn tất
-        isInitialOrFilterChange.current = false;
-      })
-      .catch(() => setLoading(false));
+
+          // Trả trạng thái về false sau khi lượt fetch hoàn tất thành công
+          isInitialOrFilterChange.current = false;
+        })
+        .catch((err) => {
+          console.error("Lỗi fetch dữ liệu:", err);
+          setProducts([]);
+          setLoading(false);
+          // Vẫn trả về false để các lượt click chuyển trang sau đó hoạt động đúng
+          isInitialOrFilterChange.current = false;
+        });
+    };
+
+    startFetching();
   }, [currentPage, searchTerm, selectedBrand]);
 
   const brands = ['All', 'Sega', 'Furyu', 'Taito', 'MegaHouse', 'Banpresto'];
 
   return (
     <div className="min-h-screen bg-black text-gray-100 pt-28 pb-24 px-4 sm:px-6 max-w-7xl mx-auto selection:bg-orange-500 selection:text-white">
-      
+
       {/* ==================== BANNER KHU VỰC ĐẦU TRANG ==================== */}
       <div className="relative h-[260px] md:h-[380px] rounded-[32px] md:rounded-[48px] overflow-hidden mb-16 shadow-2xl border border-white/[0.03]">
         <img
@@ -78,7 +99,7 @@ export default function Home() {
 
       {/* BỐ CỤC CHÍNH */}
       <div id="product-list-container" className="flex flex-col lg:flex-row gap-10 items-start scroll-mt-28">
-        
+
         {/* ==================== THANH BỘ LỌC (SIDEBAR) ==================== */}
         <aside className="w-full lg:w-60 shrink-0 space-y-8 bg-[#0e0e0e] p-6 rounded-3xl border border-white/[0.04] shadow-xl">
           {/* Tìm kiếm */}
@@ -89,7 +110,7 @@ export default function Home() {
                 type="text"
                 placeholder="Nhập tên mô hình..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)} // ĐÃ SỬA: Gọi đúng hàm Handler để cập nhật state đồng bộ
                 className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-xs focus:border-orange-500 outline-none transition-colors text-white"
               />
             </div>
@@ -103,12 +124,11 @@ export default function Home() {
                 <button
                   key={brand}
                   type="button"
-                  onClick={() => setSelectedBrand(brand)}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    selectedBrand === brand 
-                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/10' 
+                  onClick={() => handleBrandSelect(brand)} // ĐÃ SỬA: Gọi đúng hàm Handler để cập nhật bộ lọc hãng
+                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedBrand === brand
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/10'
                       : 'text-gray-400 bg-black/40 border border-white/[0.03] hover:border-white/[0.1] hover:text-white'
-                  }`}
+                    }`}
                 >
                   {brand}
                 </button>
@@ -119,7 +139,7 @@ export default function Home() {
 
         {/* ==================== DANH SÁCH MÔ HÌNH (BÊN PHẢI) ==================== */}
         <div className="flex-1 w-full">
-          
+
           {/* Header trạng thái tải ngầm */}
           <div className="h-4 mb-6 relative">
             {loading ? (
@@ -138,46 +158,50 @@ export default function Home() {
           {/* Lưới sản phẩm & Phân trang */}
           {products.length > 0 ? (
             <>
-              <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 transition-opacity duration-300 ${
-                loading ? 'opacity-40 pointer-events-none' : 'opacity-100'
-              }`}>
+              <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 transition-opacity duration-300 ${loading ? 'opacity-40 pointer-events-none' : 'opacity-100'
+                }`}>
                 {products.map(item => <ProductCard key={item.id} item={item} />)}
               </div>
 
               {/* Thanh điều hướng phân trang (Pagination) */}
               {totalPages > 1 && (
                 <div className="mt-16 flex justify-center items-center gap-2">
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} 
-                    disabled={currentPage === 1} 
+                    onClick={() => {
+                      isInitialOrFilterChange.current = false; // Bật cờ cho phép cuộn trang
+                      setCurrentPage(p => Math.max(p - 1, 1));
+                    }}
+                    disabled={currentPage === 1}
                     className="w-10 h-10 rounded-xl bg-[#0e0e0e] border border-white/[0.06] disabled:opacity-20 hover:border-white/[0.2] transition text-sm font-bold text-white flex items-center justify-center disabled:cursor-not-allowed"
                   >
                     ←
                   </button>
-                  
+
                   {[...Array(totalPages)].map((_, i) => (
-                    <button 
-                      key={i} 
+                    <button
+                      key={i}
                       type="button"
                       onClick={() => {
-                        isInitialOrFilterChange.current = false; // Bấm nút trang => Cho phép cuộn
+                        isInitialOrFilterChange.current = false; // Bật cờ cho phép cuộn trang
                         setCurrentPage(i + 1);
-                      }} 
-                      className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
-                        currentPage === i + 1 
-                          ? 'bg-orange-600 text-white shadow-orange-600/20 shadow-lg' 
+                      }}
+                      className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1
+                          ? 'bg-orange-600 text-white shadow-orange-600/20 shadow-lg'
                           : 'bg-[#0e0e0e] text-gray-500 border border-white/[0.04] hover:border-white/[0.1] hover:text-gray-300'
-                      }`}
+                        }`}
                     >
                       {i + 1}
                     </button>
                   ))}
-                  
-                  <button 
+
+                  <button
                     type="button"
-                    onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} 
-                    disabled={currentPage === totalPages} 
+                    onClick={() => {
+                      isInitialOrFilterChange.current = false; // Bật cờ cho phép cuộn trang
+                      setCurrentPage(p => Math.min(p + 1, totalPages));
+                    }}
+                    disabled={currentPage === totalPages}
                     className="w-10 h-10 rounded-xl bg-[#0e0e0e] border border-white/[0.06] disabled:opacity-20 hover:border-white/[0.2] transition text-sm font-bold text-white flex items-center justify-center disabled:cursor-not-allowed"
                   >
                     →

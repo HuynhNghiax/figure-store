@@ -62,27 +62,6 @@ export default function Profile() {
     } catch { toast.error("Lỗi kết nối!"); }
   };
 
-  // Hàm xử lý hủy đơn
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Bạn có chắc muốn huỷ đơn hàng này?")) return;
-    try {
-      // SỬA LỖI 400: Gửi kèm getAuthHeaders() để có Token
-      const res = await fetch(`${API_BASE}/api/orders/${orderId}/cancel`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-      });
-
-      if (res.ok) {
-        toast.success("Đã huỷ đơn!");
-        // Refresh lại danh sách
-        const ordersRes = await authFetch(`/api/orders/user/${user.id}`);
-        if (ordersRes.ok) setOrders(await ordersRes.json());
-      } else {
-        toast.error("Không thể huỷ đơn!");
-      }
-    } catch { toast.error("Lỗi kết nối!"); }
-  };
-
   if (loading) return <div className="text-center pt-20">Đang tải...</div>;
 
   return (

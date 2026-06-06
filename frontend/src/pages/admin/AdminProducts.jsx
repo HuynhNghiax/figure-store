@@ -219,7 +219,7 @@ export default function AdminProducts() {
       } else {
         toast.error(result.message || "Tải ảnh thất bại!");
       }
-    } catch (error) {
+    } catch{
       toast.dismiss(loadingToast);
       toast.error("Lỗi kết nối Server API!");
     } finally {
