@@ -16,6 +16,9 @@ export default function ProductDetail() {
 
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]); // Chạy lại khi chuyển đổi giữa các sản phẩm khác nhau
 
   useEffect(() => {
     const fetchData = async () => {
@@ -123,7 +126,7 @@ export default function ProductDetail() {
             <div className="bg-[#161616] rounded-[32px] p-8 h-48"></div>
           </div>
           <div className="lg:col-span-2 space-y-6">
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="bg-[#111] rounded-[32px] p-8 h-28"></div>
             ))}
           </div>
@@ -167,9 +170,8 @@ export default function ProductDetail() {
                     <button
                       key={idx}
                       onClick={() => setCurrentImgIndex(idx)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        idx === currentImgIndex ? 'bg-orange-500 w-4' : 'bg-white/50'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all ${idx === currentImgIndex ? 'bg-orange-500 w-4' : 'bg-white/50'
+                        }`}
                     />
                   ))}
                 </div>
@@ -184,9 +186,8 @@ export default function ProductDetail() {
                 <button
                   key={idx}
                   onClick={() => setCurrentImgIndex(idx)}
-                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    idx === currentImgIndex ? 'border-orange-500 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'
-                  }`}
+                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${idx === currentImgIndex ? 'border-orange-500 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'
+                    }`}
                 >
                   <img src={img} className="w-full h-full object-cover" alt="" />
                 </button>
@@ -243,7 +244,7 @@ export default function ProductDetail() {
           <div className="text-4xl font-black text-orange-500 italic mb-4">{product.price.toLocaleString()}đ</div>
           <p className="text-gray-500 text-sm mb-6">Còn {product.stock} sản phẩm trong kho</p>
           {product.description && (
-            <p className="text-gray-400 text-sm leading-relaxed mb-6 border-l-2 border-orange-500/30 pl-4 italic">
+            <p className="text-gray-400 text-sm leading-relaxed mb-6 border-l-2 border-orange-500/30 pl-4 italic whitespace-pre-line">
               {product.description}
             </p>
           )}

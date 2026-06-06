@@ -9,39 +9,42 @@ export default function Profile() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [pwData, setPwData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const navigate = useNavigate();
-  const user = getStoredUser();
+
+  // Quan trọng: Chỉ lấy user một lần để tránh làm React hiểu lầm là user thay đổi liên tục
+  const [user] = useState(getStoredUser());
 
   useEffect(() => {
+    // 1. Kiểm tra đăng nhập
     if (!user) {
-      toast.error("Vui lòng đăng nhập để xem lịch sử đơn hàng!");
+      toast.error("Vui lòng đăng nhập!");
       navigate("/login");
       return;
     }
 
-    authFetch(`/api/orders/user/${user.id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Không thể lấy dữ liệu đơn hàng");
-        return res.json();
-      })
-      .then((data) => {
+    // 2. Gọi API danh sách đơn hàng
+    // Dependency [user.id] đảm bảo hàm này chỉ chạy 1 lần duy nhất khi load trang
+    const fetchOrders = async () => {
+      try {
+        const res = await authFetch(`/api/orders/user/${user.id}`);
+        if (!res.ok) throw new Error("Lỗi tải đơn hàng");
+        const data = await res.json();
         setOrders(data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(err);
-        toast.error("Lỗi tải danh sách đơn hàng!");
+        toast.error("Không thể tải đơn hàng!");
+      } finally {
         setLoading(false);
-      });
-  }, [navigate, user]);
+      }
+    };
 
+    fetchOrders();
+  }, [user, navigate]); // Đã ổn định hơn
+
+  // Hàm xử lý đổi mật khẩu
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (pwData.newPassword !== pwData.confirmPassword) {
-      return toast.error("Mật khẩu xác nhận không khớp!");
-    }
-    if (pwData.newPassword.length < 6) {
-      return toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
-    }
+    if (pwData.newPassword !== pwData.confirmPassword) return toast.error("Mật khẩu không khớp!");
+
     try {
       const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: "POST",
@@ -56,18 +59,35 @@ export default function Profile() {
       } else {
         toast.error(data.message);
       }
-    } catch {
-      toast.error("Lỗi kết nối!");
-    }
+    } catch { toast.error("Lỗi kết nối!"); }
   };
 
-  if (loading) {
-    return <div className="pt-40 text-center animate-pulse uppercase tracking-[0.5em] text-orange-500 font-black">Đang lục tìm đơn hàng của bạn...</div>;
-  }
+  // Hàm xử lý hủy đơn
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Bạn có chắc muốn huỷ đơn hàng này?")) return;
+    try {
+      // SỬA LỖI 400: Gửi kèm getAuthHeaders() để có Token
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}/cancel`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+      });
+
+      if (res.ok) {
+        toast.success("Đã huỷ đơn!");
+        // Refresh lại danh sách
+        const ordersRes = await authFetch(`/api/orders/user/${user.id}`);
+        if (ordersRes.ok) setOrders(await ordersRes.json());
+      } else {
+        toast.error("Không thể huỷ đơn!");
+      }
+    } catch { toast.error("Lỗi kết nối!"); }
+  };
+
+  if (loading) return <div className="text-center pt-20">Đang tải...</div>;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-20 min-h-screen animate-in fade-in duration-500">
-      
+
       {/* Thông tin tài khoản */}
       <div className="bg-[#161616] p-8 md:p-10 rounded-[40px] border border-white/5 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
         <div className="flex items-center gap-6">
@@ -102,7 +122,7 @@ export default function Profile() {
               type="password"
               placeholder="Mật khẩu cũ"
               value={pwData.oldPassword}
-              onChange={e => setPwData({...pwData, oldPassword: e.target.value})}
+              onChange={e => setPwData({ ...pwData, oldPassword: e.target.value })}
               className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
               required
             />
@@ -110,7 +130,7 @@ export default function Profile() {
               type="password"
               placeholder="Mật khẩu mới"
               value={pwData.newPassword}
-              onChange={e => setPwData({...pwData, newPassword: e.target.value})}
+              onChange={e => setPwData({ ...pwData, newPassword: e.target.value })}
               className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
               required
               minLength={6}
@@ -119,7 +139,7 @@ export default function Profile() {
               type="password"
               placeholder="Xác nhận mật khẩu mới"
               value={pwData.confirmPassword}
-              onChange={e => setPwData({...pwData, confirmPassword: e.target.value})}
+              onChange={e => setPwData({ ...pwData, confirmPassword: e.target.value })}
               className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-orange-500 text-sm text-white"
               required
               minLength={6}
@@ -147,45 +167,57 @@ export default function Profile() {
         ) : (
           orders.map((order) => (
             <div key={order.id} className="bg-[#111] p-6 md:p-8 rounded-[32px] border border-white/5 hover:border-white/10 transition-all space-y-6">
-              
+
               {/* Đầu đơn hàng: Mã đơn & Trạng thái */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
                 <div>
                   <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Mã đơn: <span className="text-orange-500">#FIG-{order.id}</span></p>
                   <p className="text-[10px] text-gray-600 uppercase font-bold mt-1">Người nhận: {order.customerName} • {order.phone}</p>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
-                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                    order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
-                    order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
-                    'bg-green-500/10 text-green-500 border-green-500/20'
-                  }`}>
-                    {order.status === 'PENDING' ? '⏳ Chờ xử lý' : 
-                     order.status === 'SHIPPED' ? '🚚 Đang giao hàng' : 
-                     '✓ Đã hoàn thành'}
+                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                      order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                        order.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500 border-red-500/20' : // Thêm dòng này
+                          'bg-green-500/10 text-green-500 border-green-500/20' // Đã hoàn thành
+                    }`}>
+                    {order.status === 'PENDING' ? '⏳ Chờ xử lý' :
+                      order.status === 'SHIPPED' ? '🚚 Đang giao hàng' :
+                        order.status === 'CANCELLED' ? '❌ Đã huỷ' : // Thêm dòng này
+                          '✓ Đã hoàn thành'}
                   </span>
                   {order.status === 'PENDING' && (
+                    // Tìm đoạn onClick trong hàm map orders và sửa lại như sau:
                     <button
                       onClick={async () => {
                         if (!window.confirm("Bạn có chắc muốn huỷ đơn hàng này?")) return;
                         try {
-                          const res = await fetch(`${API_BASE}/api/orders/${order.id}/cancel`, {
+                          // SỬA ĐỔI: Sử dụng authFetch thay vì fetch thuần
+                          // authFetch tự động gắn Token vào header giúp bạn
+                          const res = await authFetch(`/api/orders/${order.id}/cancel`, {
                             method: "PUT",
-                            headers: { "Content-Type": "application/json" },
                           });
-                          const data = await res.json();
+
                           if (res.ok) {
-                            toast.success(data.message);
-                            // Refresh
+                            const data = await res.json();
+                            toast.success(data.message || "Đã huỷ đơn!");
+
+                            // Refresh lại danh sách đơn hàng sau khi hủy thành công
                             const ordersRes = await authFetch(`/api/orders/user/${user.id}`);
-                            if (ordersRes.ok) setOrders(await ordersRes.json());
+                            if (ordersRes.ok) {
+                              const updatedOrders = await ordersRes.json();
+                              setOrders(updatedOrders);
+                            }
                           } else {
-                            toast.error(data.message);
+                            const errorData = await res.json();
+                            toast.error(errorData.message || "Không thể huỷ đơn!");
                           }
-                        } catch { toast.error("Lỗi kết nối!"); }
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Lỗi kết nối với máy chủ!");
+                        }
                       }}
-                      className="text-[9px] font-black uppercase text-red-500 hover:text-red-400 px-3 py-1.5 border border-red-500/20 rounded-full"
+                      className="text-[9px] font-black uppercase text-red-500 hover:text-red-400 px-3 py-1.5 border border-red-500/20 rounded-full transition-all hover:bg-red-500/10"
                     >
                       Huỷ đơn
                     </button>
