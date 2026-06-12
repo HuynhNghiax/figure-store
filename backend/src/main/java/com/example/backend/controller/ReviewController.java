@@ -32,6 +32,12 @@ public class ReviewController {
             return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập để đánh giá!"));
         }
 
+        // Chặn spam: mỗi user chỉ được review 1 lần mỗi sản phẩm
+        boolean alreadyReviewed = reviewRepository.findByUserIdAndProductId(userId, dto.getProductId()).isPresent();
+        if (alreadyReviewed) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Bạn đã đánh giá sản phẩm này rồi!"));
+        }
+
         Review review = new Review();
         review.setProductId(dto.getProductId());
         review.setUserId(userId);
@@ -39,5 +45,20 @@ public class ReviewController {
         review.setComment(dto.getComment());
         review.setRating(dto.getRating());
         return ResponseEntity.ok(reviewRepository.save(review));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteReview(@PathVariable Long id) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        return reviewRepository.findById(id).map(review -> {
+            if (!review.getUserId().equals(userId) && !SecurityUtils.isAdmin()) {
+                return ResponseEntity.status(403).body(Map.of("message", "Không có quyền xóa đánh giá này!"));
+            }
+            reviewRepository.deleteById(id);
+            return ResponseEntity.ok().body(Map.of("message", "Đã xóa đánh giá!"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.UUID;
 
@@ -102,21 +103,29 @@ public class ProductController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/upload")
+    @PostMapping("/actions/upload")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+        System.out.println(">>> DEBUG: Dang nhan file upload: " + file.getOriginalFilename() + " (" + file.getSize() + " bytes)");
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng chọn một file ảnh hợp lệ!"));
         }
         try {
-            File uploadDirFile = new File(UPLOAD_DIR);
-            if (!uploadDirFile.exists()) uploadDirFile.mkdirs();
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = Paths.get(UPLOAD_DIR + fileName);
-            Files.copy(file.getInputStream(), filePath);
+            Path uploadPath = Paths.get(UPLOAD_DIR);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            String originalName = file.getOriginalFilename();
+            String fileName = UUID.randomUUID() + "_" + (originalName != null ? new File(originalName).getName() : "image");
+            Path filePath = uploadPath.resolve(fileName);
+
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
             String fileUrl = "/uploads/" + fileName;
             return ResponseEntity.ok().body(Map.of("imageUrl", fileUrl));
         } catch (IOException e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("message", "Lỗi ghi file!"));
         }
     }

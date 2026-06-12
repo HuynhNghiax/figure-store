@@ -1,7 +1,9 @@
 package com.example.backend.controller;
 
+import com.example.backend.entity.Coupon;
 import com.example.backend.entity.Order;
 import com.example.backend.entity.User;
+import com.example.backend.repository.CouponRepository;
 import com.example.backend.repository.OrderRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.SecurityUtils;
@@ -9,7 +11,6 @@ import com.example.backend.service.OrderService;
 import com.example.backend.service.PaypalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,13 +40,17 @@ public class OrderController {
     private UserRepository userRepository;
 
     @Autowired
+    private CouponRepository couponRepository;
+
+    @Autowired
     private JavaMailSender mailSender;
 
     @Value("${spring.mail.username:}")
     private String mailFrom;
 
     @PostMapping
-    public ResponseEntity<?> createOrder(@RequestBody Order order) {
+    public ResponseEntity<?> createOrder(@RequestBody Order order,
+                                         @RequestParam(required = false) String couponCode) {
         String stockError = orderService.validateStock(order);
         if (stockError != null) {
             return ResponseEntity.badRequest().body(Map.of("message", stockError));
@@ -72,6 +76,10 @@ public class OrderController {
                 Map<String, Object> paypalResult = paypalService.createOrder(amount, "USD", txnRef);
                 String paypalOrderId = (String) paypalResult.get("paypalOrderId");
                 saved.setPaypalOrderId(paypalOrderId);
+                // Lưu couponCode vào note để xử lý sau khi PayPal confirm
+                if (couponCode != null && !couponCode.isBlank()) {
+                    saved.setCouponCode(couponCode);
+                }
                 orderService.save(saved);
 
                 return ResponseEntity.ok(Map.of(
@@ -88,12 +96,24 @@ public class OrderController {
 
         // COD - thanh toán khi nhận hàng
         order.setPaymentStatus("PAID");
+        if (couponCode != null && !couponCode.isBlank()) {
+            order.setCouponCode(couponCode);
+        }
         try {
             orderService.deductStock(order);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
         Order saved = orderService.save(order);
+
+        // Tăng usedCount coupon nếu có
+        if (couponCode != null && !couponCode.isBlank()) {
+            couponRepository.findByCode(couponCode.toUpperCase()).ifPresent(coupon -> {
+                coupon.setUsedCount(coupon.getUsedCount() + 1);
+                couponRepository.save(coupon);
+            });
+        }
+
         return ResponseEntity.ok(saved);
     }
 
@@ -110,20 +130,13 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String search) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "ALL") String status) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        if (search != null && !search.isBlank()) {
-            try {
-                Long searchId = Long.parseLong(search);
-                return ResponseEntity.ok(orderRepository.findById(searchId)
-                        .map(List::of)
-                        .orElse(List.of()));
-            } catch (NumberFormatException e) {
-                return ResponseEntity.ok(Page.empty());
-            }
-        }
-        return ResponseEntity.ok(orderRepository.findAll(pageable));
+        String searchParam = (search != null && !search.isBlank()) ? search.trim() : null;
+        String statusParam = (status != null && !status.isBlank() && !"ALL".equals(status)) ? status : null;
+        return ResponseEntity.ok(orderRepository.findFiltered(statusParam, searchParam, pageable));
     }
 
     @PutMapping("/{id}/cancel")
@@ -133,8 +146,10 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
         }
         return orderRepository.findById(id).map(order -> {
-            if (!order.getUserId().equals(currentUserId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền huỷ đơn hàng này!"));
+            // Fix NPE: kiểm tra userId của đơn hàng trước khi so sánh
+            if (order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Bạn không có quyền huỷ đơn hàng này!"));
             }
             if (!"PENDING".equals(order.getStatus())) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Chỉ có thể huỷ đơn hàng đang chờ xử lý!"));
@@ -164,6 +179,8 @@ public class OrderController {
                         String statusText = switch (newStatus) {
                             case "SHIPPED" -> "đang được giao hàng";
                             case "DELIVERED" -> "đã giao thành công";
+                            case "COMPLETED" -> "đã hoàn thành";
+                            case "CANCELLED" -> "đã bị huỷ";
                             default -> "đã cập nhật: " + newStatus;
                         };
                         SimpleMailMessage msg = new SimpleMailMessage();

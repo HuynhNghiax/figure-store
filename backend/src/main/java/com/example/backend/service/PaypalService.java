@@ -28,11 +28,15 @@ public class PaypalService {
     @Value("${paypal.mode:sandbox}")
     private String mode;
 
-    // Sandbox URLs
+    // PayPal API base URLs
     private static final String SANDBOX_BASE = "https://api-m.sandbox.paypal.com";
     private static final String LIVE_BASE = "https://api-m.paypal.com";
-    private static final String RETURN_URL = "http://localhost:8080/api/payments/paypal-return";
-    private static final String CANCEL_URL = "http://localhost:5173/payment/result?status=cancelled";
+
+    @Value("${app.api-base-url:http://localhost:8080}")
+    private String apiBaseUrl;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     public PaypalService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -101,8 +105,8 @@ public class PaypalService {
                                         "payment_method_preference", "IMMEDIATE_PAYMENT_REQUIRED",
                                         "landing_page", "LOGIN",
                                         "user_action", "PAY_NOW",
-                                        "return_url", RETURN_URL + "?txnRef=" + txnRef,
-                                        "cancel_url", CANCEL_URL
+                                        "return_url", apiBaseUrl + "/api/payments/paypal-return?txnRef=" + txnRef,
+                                        "cancel_url", frontendUrl + "/payment/result?status=cancelled"
                                 )
                         )
                 )

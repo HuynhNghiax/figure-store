@@ -3,6 +3,7 @@ package com.example.backend.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -26,6 +27,9 @@ public class User {
 
     @JsonIgnore
     private String otp;
+
+    @JsonIgnore
+    private LocalDateTime otpExpiry;
 
     private String googleId;
 

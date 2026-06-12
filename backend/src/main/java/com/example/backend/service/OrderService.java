@@ -30,6 +30,10 @@ public class OrderService {
             }
             product.setStock(product.getStock() - item.getQuantity());
             productRepository.save(product);
+            // Lưu tên sản phẩm để hiển thị trong lịch sử đơn hàng
+            if (item.getProductName() == null || item.getProductName().isBlank()) {
+                item.setProductName(product.getName());
+            }
         }
     }
 
