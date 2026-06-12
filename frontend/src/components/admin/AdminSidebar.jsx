@@ -9,7 +9,8 @@ export default function AdminSidebar() {
     { name: 'Thống kê', path: '/admin/dashboard', icon: '📊' },
     { name: 'Đơn hàng', path: '/admin/orders', icon: '📋' },
     { name: 'Sản phẩm', path: '/admin/products', icon: '📦' },
-    { name: 'Khách hàng', path: '/admin/users', icon: '👤' }, // Đã thêm mục này
+    { name: 'Mã giảm giá', path: '/admin/coupons', icon: '🎟️' },
+    { name: 'Khách hàng', path: '/admin/users', icon: '👤' },
   ];
 
   const handleLogout = () => {
