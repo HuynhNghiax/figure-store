@@ -1,7 +1,9 @@
 package com.example.backend.controller;
 
+import com.example.backend.entity.Coupon;
 import com.example.backend.entity.Order;
 import com.example.backend.entity.User;
+import com.example.backend.repository.CouponRepository;
 import com.example.backend.repository.OrderRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.SecurityUtils;
@@ -9,7 +11,6 @@ import com.example.backend.service.OrderService;
 import com.example.backend.service.PaypalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,13 +40,17 @@ public class OrderController {
     private UserRepository userRepository;
 
     @Autowired
+    private CouponRepository couponRepository;
+
+    @Autowired
     private JavaMailSender mailSender;
 
     @Value("${spring.mail.username:}")
     private String mailFrom;
 
     @PostMapping
-    public ResponseEntity<?> createOrder(@RequestBody Order order) {
+    public ResponseEntity<?> createOrder(@RequestBody Order order,
+                                         @RequestParam(required = false) String couponCode) {
         String stockError = orderService.validateStock(order);
         if (stockError != null) {
             return ResponseEntity.badRequest().body(Map.of("message", stockError));
@@ -72,6 +76,10 @@ public class OrderController {
                 Map<String, Object> paypalResult = paypalService.createOrder(amount, "USD", txnRef);
                 String paypalOrderId = (String) paypalResult.get("paypalOrderId");
                 saved.setPaypalOrderId(paypalOrderId);
+                // Lưu couponCode vào note để xử lý sau khi PayPal confirm
+                if (couponCode != null && !couponCode.isBlank()) {
+                    saved.setCouponCode(couponCode);
+                }
                 orderService.save(saved);
 
                 return ResponseEntity.ok(Map.of(
@@ -88,101 +96,69 @@ public class OrderController {
 
         // COD - thanh toán khi nhận hàng
         order.setPaymentStatus("PAID");
+        if (couponCode != null && !couponCode.isBlank()) {
+            order.setCouponCode(couponCode);
+        }
         try {
             orderService.deductStock(order);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
         Order saved = orderService.save(order);
+
+        // Tăng usedCount coupon nếu có
+        if (couponCode != null && !couponCode.isBlank()) {
+            couponRepository.findByCode(couponCode.toUpperCase()).ifPresent(coupon -> {
+                coupon.setUsedCount(coupon.getUsedCount() + 1);
+                couponRepository.save(coupon);
+            });
+        }
+
         return ResponseEntity.ok(saved);
     }
 
     @GetMapping("/user/{userId}")
-public ResponseEntity<?> getOrdersByUserId(@PathVariable Long userId) {
-    Long currentUserId = SecurityUtils.getCurrentUserId();
-    if (!SecurityUtils.isAdmin() && (currentUserId == null || !currentUserId.equals(userId))) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Không có quyền!"));
+    public ResponseEntity<?> getOrdersByUserId(@PathVariable Long userId) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (!SecurityUtils.isAdmin() && (currentUserId == null || !currentUserId.equals(userId))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Không có quyền xem đơn hàng này!"));
+        }
+        return ResponseEntity.ok(orderRepository.findByUserId(userId));
     }
-    List<Order> orders = orderRepository.findByUserId(userId);
-    
-    orders.sort((o1, o2) -> o2.getId().compareTo(o1.getId()));
-    
-    return ResponseEntity.ok(orders);
-}
 
-   @GetMapping
+    @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status) { // 1. Hứng tham số status từ Frontend gửi lên
-
+            @RequestParam(required = false, defaultValue = "ALL") String status) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("id").descending());
-
-        // Trường hợp 1: Có nhập từ khóa tìm kiếm (search)
-        if (search != null && !search.isBlank()) {
-            try {
-                Long searchId = Long.parseLong(search);
-                return ResponseEntity.ok(orderRepository.findById(searchId)
-                        .map(List::of)
-                        .orElse(List.of()));
-            } catch (NumberFormatException e) {
-                // Nếu search không phải là số (ID), có thể bổ sung tìm theo tên khách ở đây
-                // Tạm thời trả về trang trống nếu không ép kiểu được số giống logic cũ của bạn
-                return ResponseEntity.ok(Page.empty());
-            }
-        }
-
-        // Trường hợp 2: Có chọn lọc theo trạng thái (status) cụ thể và khác "ALL"
-        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            // Sử dụng hàm truy vấn lọc theo status được viết trong Repository
-            Page<Order> orderPage = orderRepository.findByStatus(status, pageable);
-            return ResponseEntity.ok(orderPage);
-        }
-
-        // Trường hợp 3: Không tìm kiếm, không chọn trạng thái (Hoặc chọn tab Tất cả) -> Lấy hết đơn hàng
-        return ResponseEntity.ok(orderRepository.findAll(pageable));
+        String searchParam = (search != null && !search.isBlank()) ? search.trim() : null;
+        String statusParam = (status != null && !status.isBlank() && !"ALL".equals(status)) ? status : null;
+        return ResponseEntity.ok(orderRepository.findFiltered(statusParam, searchParam, pageable));
     }
 
     @PutMapping("/{id}/cancel")
-public ResponseEntity<?> cancelOrder(@PathVariable Long id) {
-    Long currentUserId = SecurityUtils.getCurrentUserId();
-    if (currentUserId == null) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+    public ResponseEntity<?> cancelOrder(@PathVariable Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        return orderRepository.findById(id).map(order -> {
+            // Fix NPE: kiểm tra userId của đơn hàng trước khi so sánh
+            if (order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Bạn không có quyền huỷ đơn hàng này!"));
+            }
+            if (!"PENDING".equals(order.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Chỉ có thể huỷ đơn hàng đang chờ xử lý!"));
+            }
+            order.setStatus("CANCELLED");
+            orderRepository.save(order);
+            return ResponseEntity.ok().body(Map.of("message", "Đã huỷ đơn hàng thành công!"));
+        }).orElse(ResponseEntity.notFound().build());
     }
-
-    boolean isAdmin = SecurityUtils.isAdmin();
-
-    return orderRepository.findById(id).map(order -> {
-        // 1. Kiểm tra quyền sở hữu
-        boolean isOwner = order.getUserId() != null && order.getUserId().equals(currentUserId);
-        if (!isOwner && !isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền huỷ đơn hàng này!"));
-        }
-
-        // 2. Kiểm tra trạng thái
-        String currentStatus = order.getStatus() != null ? order.getStatus().trim() : "";
-        if (!"PENDING".equalsIgnoreCase(currentStatus)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Chỉ có thể huỷ đơn hàng đang chờ xử lý!"));
-        }
-
-        // 3. HOÀN KHO (Logic quan trọng)
-        // Gọi hàm hoàn kho từ orderService (bạn cần đảm bảo hàm này đã được viết như gợi ý trước)
-        try {
-            orderService.restockItems(order); 
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body(Map.of("message", "Lỗi khi hoàn kho: " + e.getMessage()));
-        }
-
-        // 4. Cập nhật trạng thái
-        order.setStatus("CANCELLED");
-        orderRepository.save(order);
-        
-        return ResponseEntity.ok().body(Map.of("message", "Đã huỷ đơn và hoàn kho thành công!"));
-    }).orElse(ResponseEntity.notFound().build());
-}
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
@@ -203,6 +179,8 @@ public ResponseEntity<?> cancelOrder(@PathVariable Long id) {
                         String statusText = switch (newStatus) {
                             case "SHIPPED" -> "đang được giao hàng";
                             case "DELIVERED" -> "đã giao thành công";
+                            case "COMPLETED" -> "đã hoàn thành";
+                            case "CANCELLED" -> "đã bị huỷ";
                             default -> "đã cập nhật: " + newStatus;
                         };
                         SimpleMailMessage msg = new SimpleMailMessage();

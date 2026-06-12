@@ -30,6 +30,10 @@ public class OrderService {
             }
             product.setStock(product.getStock() - item.getQuantity());
             productRepository.save(product);
+            // Lưu tên sản phẩm để hiển thị trong lịch sử đơn hàng
+            if (item.getProductName() == null || item.getProductName().isBlank()) {
+                item.setProductName(product.getName());
+            }
         }
     }
 
@@ -55,17 +59,5 @@ public class OrderService {
     @Transactional
     public Order save(Order order) {
         return orderRepository.save(order);
-    }
-
-    @Transactional
-    public void restockItems(Order order) {
-        for (OrderItem item : order.getItems()) {
-            Product product = productRepository.findById(item.getProductId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
-            
-            // Cộng ngược số lượng đã hủy vào kho
-            product.setStock(product.getStock() + item.getQuantity());
-            productRepository.save(product);
-        }
     }
 }
