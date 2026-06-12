@@ -21,6 +21,7 @@ public class Order {
     private String paymentStatus = "UNPAID";
     private String paymentMethod = "COD";
     private String paypalOrderId;
+    private String couponCode;
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private Long userId;

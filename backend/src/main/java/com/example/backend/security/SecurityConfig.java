@@ -35,10 +35,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers("/api/payments/paypal-return").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
+                .requestMatchers("/api/payments/paypal-return", "/api/payments/paypal-check").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
                 .requestMatchers("/api/categories/**").permitAll()
                 .requestMatchers("/api/coupons/validate").permitAll()
