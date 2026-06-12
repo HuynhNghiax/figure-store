@@ -159,7 +159,7 @@ export default function AdminProducts() {
       const data = new FormData();
       data.append("file", file); // Khớp chuẩn với @RequestParam("file") của Spring Boot
       try {
-        const response = await fetch(`${API_BASE}/api/products/actions/upload`, {
+        const response = await fetch(`${API_BASE}/api/products/upload`, {
           method: "POST",
           headers: token ? { "Authorization": `Bearer ${token}` } : {}, // Bọc ngoặc kép tường minh cho Key Header
           body: data,
@@ -205,7 +205,7 @@ export default function AdminProducts() {
 
     try {
       const token = getToken();
-      const response = await fetch(`${API_BASE}/api/products/actions/upload`, {
+      const response = await fetch(`${API_BASE}/api/products/upload`, {
         method: "POST",
         headers: token ? { "Authorization": `Bearer ${token}` } : {}, // Sửa định dạng Header gửi token
         body: data

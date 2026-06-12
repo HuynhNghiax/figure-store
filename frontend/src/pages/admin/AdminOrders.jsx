@@ -261,7 +261,9 @@ export default function AdminOrders() {
                       {item.quantity}x
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-white">Sản phẩm ID: {item.productId}</p>
+                      <p className="font-bold text-sm text-white">
+                        {item.productName || `Sản phẩm ID: ${item.productId}`}
+                      </p>
                       <p className="text-[10px] text-gray-500 uppercase tracking-widest">Đơn giá: {item.price?.toLocaleString()}đ</p>
                     </div>
                   </div>
