@@ -210,7 +210,9 @@ export default function Profile() {
                   <div key={index} className="flex justify-between items-center text-sm text-gray-400">
                     <div className="flex items-center gap-3">
                       <span className="text-gray-600 font-mono text-xs">[{item.quantity}x]</span>
-                      <span className="text-white font-medium text-xs">Sản phẩm mã số #{item.productId}</span>
+                      <span className="text-white font-medium text-xs">
+                        {item.productName || `Sản phẩm #${item.productId}`}
+                      </span>
                     </div>
                     <span className="font-bold text-xs">{item.price?.toLocaleString()}đ</span>
                   </div>

@@ -74,7 +74,8 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/orders`, {
+      const couponParam = couponApplied ? `?couponCode=${encodeURIComponent(couponApplied.code)}` : '';
+      const response = await fetch(`${API_BASE}/api/orders${couponParam}`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(orderData)
