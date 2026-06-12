@@ -71,6 +71,7 @@ public class AuthController {
         user.setEmail(registerDTO.getEmail());
         user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
         user.setOtp(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         user.setEnabled(false);
         user.setRole("USER");
         userRepository.save(user);
@@ -91,8 +92,13 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (user.getOtp() != null && user.getOtp().equals(otp)) {
+                // Kiểm tra OTP đã hết hạn chưa (10 phút)
+                if (user.getOtpExpiry() != null && user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+                    return ResponseEntity.status(400).body(Map.of("message", "Mã xác thực đã hết hạn! Vui lòng đăng ký lại."));
+                }
                 user.setEnabled(true);
                 user.setOtp(null);
+                user.setOtpExpiry(null);
                 userRepository.save(user);
                 return ResponseEntity.ok().body(Map.of("message", "Kích hoạt tài khoản thành công! Hãy đăng nhập."));
             }
