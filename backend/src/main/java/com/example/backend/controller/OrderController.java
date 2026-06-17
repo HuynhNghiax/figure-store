@@ -114,8 +114,39 @@ public class OrderController {
             });
         }
 
+        // Gửi email xác nhận đặt hàng COD
+        if (saved.getUserId() != null && mailFrom != null && !mailFrom.isBlank()) {
+            userRepository.findById(saved.getUserId()).ifPresent(user -> {
+                try {
+                    StringBuilder itemsText = new StringBuilder();
+                    if (saved.getItems() != null) {
+                        for (var item : saved.getItems()) {
+                            itemsText.append("  - ").append(item.getProductName())
+                                    .append(" x").append(item.getQuantity())
+                                    .append(" — ").append(String.format("%,.0f", item.getPrice())).append("đ\n");
+                        }
+                    }
+                    SimpleMailMessage msg = new SimpleMailMessage();
+                    msg.setFrom(mailFrom);
+                    msg.setTo(user.getEmail());
+                    msg.setSubject("FIGHUB - XÁC NHẬN ĐƠN HÀNG #FIG-" + saved.getId());
+                    msg.setText("Xin chào " + user.getUsername() + ",\n\n"
+                            + "Cảm ơn bạn đã đặt hàng tại FigHub! Đơn hàng của bạn đã được xác nhận.\n\n"
+                            + "📦 Mã đơn hàng: #FIG-" + saved.getId() + "\n"
+                            + "💳 Phương thức: Thanh toán khi nhận hàng (COD)\n"
+                            + "📍 Giao đến: " + saved.getAddress() + "\n\n"
+                            + "Sản phẩm:\n" + itemsText
+                            + "\n💰 Tổng tiền: " + String.format("%,.0f", saved.getTotalAmount()) + "đ\n\n"
+                            + "Chúng tôi sẽ liên hệ xác nhận giao hàng trong thời gian sớm nhất.\n"
+                            + "Cảm ơn bạn đã tin tưởng FigHub!");
+                    mailSender.send(msg);
+                } catch (Exception ignored) {}
+            });
+        }
+
         return ResponseEntity.ok(saved);
     }
+
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> getOrdersByUserId(@PathVariable Long userId) {
@@ -156,6 +187,8 @@ public class OrderController {
             }
             order.setStatus("CANCELLED");
             orderRepository.save(order);
+            // Hoàn lại tồn kho
+            orderService.restoreStock(order);
             return ResponseEntity.ok().body(Map.of("message", "Đã huỷ đơn hàng thành công!"));
         }).orElse(ResponseEntity.notFound().build());
     }

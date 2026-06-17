@@ -15,9 +15,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE (p.deleted = false OR p.deleted IS NULL) " +
            "AND (:search IS NULL OR :search = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:brand IS NULL OR :brand = '' OR :brand = 'All' OR p.brand = :brand)")
+           "AND (:brand IS NULL OR :brand = '' OR :brand = 'All' OR p.brand = :brand) " +
+           "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
     Page<Product> findActiveFiltered(
             Pageable pageable,
             @Param("search") String search,
-            @Param("brand") String brand);
+            @Param("brand") String brand,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice);
 }
+

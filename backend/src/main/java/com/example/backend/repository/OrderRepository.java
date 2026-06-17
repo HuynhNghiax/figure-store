@@ -24,4 +24,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") String status,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("SELECT COUNT(o) > 0 FROM Order o JOIN o.items i " +
+           "WHERE o.userId = :userId AND i.productId = :productId AND o.status = 'COMPLETED'")
+    boolean hasUserPurchasedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 }
+

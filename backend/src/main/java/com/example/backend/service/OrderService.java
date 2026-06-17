@@ -57,6 +57,17 @@ public class OrderService {
     }
 
     @Transactional
+    public void restoreStock(Order order) {
+        if (order.getItems() == null) return;
+        for (OrderItem item : order.getItems()) {
+            productRepository.findById(item.getProductId()).ifPresent(product -> {
+                product.setStock(product.getStock() + item.getQuantity());
+                productRepository.save(product);
+            });
+        }
+    }
+
+    @Transactional
     public Order save(Order order) {
         return orderRepository.save(order);
     }

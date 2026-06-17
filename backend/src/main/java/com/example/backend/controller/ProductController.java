@@ -36,9 +36,17 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String brand) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return productRepository.findActiveFiltered(pageable, search, brand);
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false, defaultValue = "newest") String sortBy) {
+        Sort sort = switch (sortBy) {
+            case "price_asc"  -> Sort.by("price").ascending();
+            case "price_desc" -> Sort.by("price").descending();
+            default           -> Sort.by("id").descending();
+        };
+        PageRequest pageable = PageRequest.of(page, size, sort);
+        return productRepository.findActiveFiltered(pageable, search, brand, minPrice, maxPrice);
     }
 
     @GetMapping("/admin")

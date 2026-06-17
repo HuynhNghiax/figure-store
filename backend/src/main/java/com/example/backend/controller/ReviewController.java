@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.ReviewRequestDTO;
 import com.example.backend.entity.Review;
+import com.example.backend.repository.OrderRepository;
 import com.example.backend.repository.ReviewRepository;
 import com.example.backend.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -19,6 +20,9 @@ public class ReviewController {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @GetMapping("/product/{productId}")
     public List<Review> getReviews(@PathVariable Long productId) {
         return reviewRepository.findByProductIdOrderByCreatedAtDesc(productId);
@@ -30,6 +34,12 @@ public class ReviewController {
         String username = SecurityUtils.getCurrentUsername();
         if (userId == null || username == null) {
             return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập để đánh giá!"));
+        }
+
+        // Kiểm tra user đã mua sản phẩm này chưa (phải có đơn COMPLETED)
+        boolean hasPurchased = orderRepository.hasUserPurchasedProduct(userId, dto.getProductId());
+        if (!hasPurchased) {
+            return ResponseEntity.status(403).body(Map.of("message", "Bạn cần mua và nhận hàng sản phẩm này trước khi đánh giá!"));
         }
 
         // Chặn spam: mỗi user chỉ được review 1 lần mỗi sản phẩm
@@ -46,6 +56,7 @@ public class ReviewController {
         review.setRating(dto.getRating());
         return ResponseEntity.ok(reviewRepository.save(review));
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteReview(@PathVariable Long id) {
