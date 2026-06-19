@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,6 +48,11 @@ public class ProductController {
         };
         PageRequest pageable = PageRequest.of(page, size, sort);
         return productRepository.findActiveFiltered(pageable, search, brand, minPrice, maxPrice);
+    }
+
+    @GetMapping("/brands")
+    public ResponseEntity<List<String>> getBrands() {
+        return ResponseEntity.ok(productRepository.findAllBrandsActive());
     }
 
     @GetMapping("/admin")
