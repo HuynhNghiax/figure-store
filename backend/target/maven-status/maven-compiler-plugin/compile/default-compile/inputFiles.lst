@@ -10,6 +10,7 @@ D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\PaymentController.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\ProductController.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\ReviewController.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\StatsController.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\UserController.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\controller\WishlistController.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\dto\GoogleLoginDTO.java

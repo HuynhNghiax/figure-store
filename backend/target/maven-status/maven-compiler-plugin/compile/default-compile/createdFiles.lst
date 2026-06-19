@@ -13,6 +13,7 @@ com\example\backend\security\SecurityConfig.class
 com\example\backend\repository\CouponRepository.class
 com\example\backend\entity\Category.class
 com\example\backend\entity\OrderItem.class
+com\example\backend\controller\StatsController.class
 com\example\backend\service\OrderService.class
 com\example\backend\controller\UserController.class
 com\example\backend\repository\CategoryRepository.class
