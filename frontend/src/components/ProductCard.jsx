@@ -8,10 +8,18 @@ export default function ProductCard({ item }) {
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
 
   const isOutOfStock = item.stock <= 0;
 
   useEffect(() => {
+    // Fetch avg rating
+    fetch(`${API_BASE}/api/reviews/product/${item.id}/avg`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) { setAvgRating(d.avgRating); setReviewCount(d.reviewCount); } })
+      .catch(() => {});
+
     if (!user) return;
     (async () => {
       try {
@@ -123,6 +131,17 @@ export default function ProductCard({ item }) {
             <span className="text-[10px] text-gray-600 font-bold shrink-0">Kho: {item.stock} cái</span>
           </div>
 
+          {/* Rating trung bình */}
+          {reviewCount > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex">
+                {[1,2,3,4,5].map(star => (
+                  <span key={star} className={`text-xs ${star <= Math.round(avgRating) ? 'text-yellow-400' : 'text-gray-700'}`}>★</span>
+                ))}
+              </div>
+              <span className="text-[10px] text-gray-500 font-bold">{avgRating.toFixed(1)} ({reviewCount})</span>
+            </div>
+          )}
           <button
             onClick={() => handleAddToCart(item)}
             disabled={isOutOfStock}
