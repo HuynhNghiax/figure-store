@@ -63,6 +63,7 @@ export default function ProductDetail() {
       }
     };
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Check xem user đã mua sản phẩm này chưa
