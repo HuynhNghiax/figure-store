@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import Wishlist from './pages/Wishlist';
 import Profile from './pages/Profile';
 import OrderSuccess from './pages/OrderSuccess';
+import OrderDetail from './pages/OrderDetail';
 import PaymentResult from './pages/PaymentResult';
 import { getStoredUser, getToken } from './utils/api';
 import AdminOrders from './pages/admin/AdminOrders';
@@ -20,6 +21,8 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminCoupons from './pages/admin/AdminCoupons';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminCategories from './pages/admin/AdminCategories';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
 
@@ -54,6 +57,7 @@ function App() {
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/order-success" element={<OrderSuccess />} />
+              <Route path="/order/:id" element={<OrderDetail />} />
               <Route path="/payment/result" element={<PaymentResult />} />
               
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
@@ -61,6 +65,8 @@ function App() {
               <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
               <Route path="/admin/coupons" element={<ProtectedRoute><AdminCoupons /></ProtectedRoute>} />
+              <Route path="/admin/reviews" element={<ProtectedRoute><AdminReviews /></ProtectedRoute>} />
+              <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

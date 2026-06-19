@@ -13,6 +13,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByDeletedFalse(Pageable pageable);
 
+    long countByDeletedFalse();
+
     @Query("SELECT p FROM Product p WHERE (p.deleted = false OR p.deleted IS NULL) " +
            "AND (:search IS NULL OR :search = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:brand IS NULL OR :brand = '' OR :brand = 'All' OR p.brand = :brand) " +
@@ -24,5 +26,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("brand") String brand,
             @Param("minPrice") Double minPrice,
             @Param("maxPrice") Double maxPrice);
+
+    @Query("SELECT DISTINCT p.brand FROM Product p WHERE (p.deleted = false OR p.deleted IS NULL) ORDER BY p.brand ASC")
+    java.util.List<String> findAllBrandsActive();
 }
+
 

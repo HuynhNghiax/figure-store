@@ -157,6 +157,18 @@ public class OrderController {
         return ResponseEntity.ok(orderRepository.findByUserId(userId));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getOrderById(@PathVariable Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        return orderRepository.findById(id).map(order -> {
+            if (!SecurityUtils.isAdmin() && !order.getUserId().equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Không có quyền xem đơn hàng này!"));
+            }
+            return ResponseEntity.ok(order);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllOrders(

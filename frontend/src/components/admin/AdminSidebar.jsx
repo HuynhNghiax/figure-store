@@ -6,11 +6,13 @@ export default function AdminSidebar() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { name: 'Thống kê', path: '/admin/dashboard', icon: '📊' },
-    { name: 'Đơn hàng', path: '/admin/orders', icon: '📋' },
-    { name: 'Sản phẩm', path: '/admin/products', icon: '📦' },
-    { name: 'Mã giảm giá', path: '/admin/coupons', icon: '🎟️' },
-    { name: 'Khách hàng', path: '/admin/users', icon: '👤' },
+    { name: 'Thống kê',   path: '/admin/dashboard',  icon: '📊' },
+    { name: 'Đơn hàng',  path: '/admin/orders',      icon: '📋' },
+    { name: 'Sản phẩm',  path: '/admin/products',    icon: '📦' },
+    { name: 'Danh mục',  path: '/admin/categories',  icon: '🗂️' },
+    { name: 'Đánh giá',  path: '/admin/reviews',     icon: '⭐' },
+    { name: 'Mã giảm giá', path: '/admin/coupons',   icon: '🎟️' },
+    { name: 'Khách hàng', path: '/admin/users',      icon: '👤' },
   ];
 
   const handleLogout = () => {
