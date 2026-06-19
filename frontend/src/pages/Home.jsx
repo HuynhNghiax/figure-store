@@ -4,6 +4,7 @@ import { API_BASE } from '../utils/api';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
+  const [brands, setBrands] = useState(['All']);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
@@ -90,7 +91,14 @@ export default function Home() {
     startFetching();
   }, [currentPage, searchTerm, selectedBrand, minPrice, maxPrice, sortBy]);
 
-  const brands = ['All', 'Sega', 'Furyu', 'Taito', 'MegaHouse', 'Banpresto'];
+  // Fetch danh sách thương hiệu động từ backend
+  useEffect(() => {
+    fetch(`${API_BASE}/api/products/brands`)
+      .then(res => res.json())
+      .then(data => setBrands(['All', ...data]))
+      .catch(() => setBrands(['All']));
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-black text-gray-100 pt-28 pb-24 px-4 sm:px-6 max-w-7xl mx-auto selection:bg-orange-500 selection:text-white">

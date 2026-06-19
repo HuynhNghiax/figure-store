@@ -222,11 +222,20 @@ export default function Profile() {
               {/* Chân đơn hàng: Địa chỉ giao & Tổng tiền */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-white/5 pt-4 text-xs">
                 <p className="text-gray-500 italic">📍 Giao đến: {order.address}</p>
-                <div className="text-left sm:text-right w-full sm:w-auto">
-                  <p className="text-[9px] text-gray-600 uppercase font-bold tracking-widest">Tổng tiền thanh toán</p>
-                  <p className="text-xl font-black text-orange-500 italic mt-0.5">{order.totalAmount?.toLocaleString()}đ</p>
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                  <Link
+                    to={`/order/${order.id}`}
+                    className="text-[9px] font-black uppercase tracking-widest text-orange-500 hover:text-white border border-orange-500/20 hover:border-orange-500 px-3 py-1.5 rounded-full transition-all hover:bg-orange-500/10"
+                  >
+                    Xem chi tiết →
+                  </Link>
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-600 uppercase font-bold tracking-widest">Tổng tiền thanh toán</p>
+                    <p className="text-xl font-black text-orange-500 italic mt-0.5">{order.totalAmount?.toLocaleString()}đ</p>
+                  </div>
                 </div>
               </div>
+
 
             </div>
           ))

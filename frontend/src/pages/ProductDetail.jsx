@@ -13,6 +13,8 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
 
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
@@ -30,6 +32,13 @@ export default function ProductDetail() {
         }
         const prodData = await prodRes.json();
         setProduct(prodData);
+
+        // SEO: cập nhật title & meta description động
+        document.title = `${prodData.name} — FigHub`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+          metaDesc.setAttribute('content', `Mua ${prodData.name} chính hãng ${prodData.brand} tại FigHub. Giá ${prodData.price?.toLocaleString()}đ. Giao hàng toàn quốc.`);
+        }
 
         const revRes = await fetch(`${API_BASE}/api/reviews/product/${id}`);
         if (revRes.ok) {
@@ -55,6 +64,31 @@ export default function ProductDetail() {
     };
     fetchData();
   }, [id]);
+
+  // Check xem user đã mua sản phẩm này chưa
+  useEffect(() => {
+    if (!user) return;
+    setCheckingPurchase(true);
+    authFetch(`/api/orders/user/${user.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(orders => {
+        const pid = parseInt(id);
+        const purchased = orders.some(o =>
+          o.status === 'COMPLETED' &&
+          o.items?.some(item => item.productId === pid)
+        );
+        setHasPurchased(purchased);
+      })
+      .catch(() => {})
+      .finally(() => setCheckingPurchase(false));
+  }, [id, user]);
+
+  // Reset title khi rời trang
+  useEffect(() => {
+    return () => {
+      document.title = 'FigHub — Cửa hàng mô hình anime cao cấp';
+    };
+  }, []);
 
   const handleSendReview = async (e) => {
     e.preventDefault();
@@ -268,25 +302,39 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
           <div className="lg:col-span-1">
             {user ? (
-              <div className="bg-[#161616] p-8 rounded-[32px] border border-white/5">
-                <h3 className="text-sm font-bold uppercase mb-6 text-gray-400 tracking-widest italic">Để lại đánh giá của bạn</h3>
-                <form onSubmit={handleSendReview} className="space-y-4">
-                  <div className="flex gap-2 mb-4">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button key={star} type="button" onClick={() => setRating(star)} className={`text-2xl transition-all ${rating >= star ? 'grayscale-0' : 'grayscale opacity-20'}`}>⭐</button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Viết cảm nhận của bạn về mô hình này..."
-                    className="w-full bg-black border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-orange-500 h-32 text-white"
-                  />
-                  <button className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-orange-700 transition-all">
-                    Gửi bình luận
-                  </button>
-                </form>
-              </div>
+              hasPurchased ? (
+                <div className="bg-[#161616] p-8 rounded-[32px] border border-white/5">
+                  <h3 className="text-sm font-bold uppercase mb-6 text-gray-400 tracking-widest italic">Đánh giá của bạn</h3>
+                  <form onSubmit={handleSendReview} className="space-y-4">
+                    <div className="flex gap-2 mb-4">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button key={star} type="button" onClick={() => setRating(star)} className={`text-2xl transition-all ${rating >= star ? 'grayscale-0' : 'grayscale opacity-20'}`}>⭐</button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Viết cảm nhận của bạn về mô hình này..."
+                      className="w-full bg-black border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-orange-500 h-32 text-white"
+                    />
+                    <button className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-orange-700 transition-all">
+                      Gửi bình luận
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="bg-[#161616] p-10 rounded-[32px] border border-dashed border-white/10 text-center">
+                  {checkingPurchase ? (
+                    <p className="text-gray-500 text-xs italic">Đang kiểm tra...</p>
+                  ) : (
+                    <>
+                      <span className="text-3xl block mb-4">🛒</span>
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Chỉ dành cho người đã mua</p>
+                      <p className="text-gray-600 text-xs italic">Bạn cần mua và nhận được sản phẩm này (đơn COMPLETED) để có thể đánh giá.</p>
+                    </>
+                  )}
+                </div>
+              )
             ) : (
               <div className="bg-[#161616] p-10 rounded-[32px] border border-dashed border-white/10 text-center">
                 <p className="text-gray-500 text-xs italic mb-6">Bạn cần đăng nhập để đánh giá mô hình này.</p>
