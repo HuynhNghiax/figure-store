@@ -68,19 +68,22 @@ export default function ProductDetail() {
   // Check xem user đã mua sản phẩm này chưa
   useEffect(() => {
     if (!user) return;
-    setCheckingPurchase(true);
+    let cancelled = false;
     authFetch(`/api/orders/user/${user.id}`)
       .then(r => r.ok ? r.json() : [])
       .then(orders => {
+        if (cancelled) return;
+        setCheckingPurchase(true);
         const pid = parseInt(id);
         const purchased = orders.some(o =>
           o.status === 'COMPLETED' &&
           o.items?.some(item => item.productId === pid)
         );
         setHasPurchased(purchased);
+        setCheckingPurchase(false);
       })
-      .catch(() => {})
-      .finally(() => setCheckingPurchase(false));
+      .catch(() => { if (!cancelled) setCheckingPurchase(false); });
+    return () => { cancelled = true; };
   }, [id, user]);
 
   // Reset title khi rời trang

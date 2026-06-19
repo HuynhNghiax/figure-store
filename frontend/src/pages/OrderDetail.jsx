@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { authFetch, getStoredUser, imageUrl } from '../utils/api';
+import { authFetch, imageUrl } from '../utils/api';
 
 const STATUS_MAP = {
   PENDING:    { label: 'Chờ xử lý',    color: 'text-yellow-400',  bg: 'bg-yellow-400/10 border-yellow-400/20' },
@@ -13,7 +13,6 @@ const STATUS_MAP = {
 
 export default function OrderDetail() {
   const { id }    = useParams();
-  const user      = getStoredUser();
   const [order,   setOrder]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);

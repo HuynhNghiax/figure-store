@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { authFetch, API_BASE } from '../../utils/api';
+import { authFetch } from '../../utils/api';
 
 const STARS = [null, 1, 2, 3, 4, 5];
 
@@ -44,6 +44,7 @@ export default function AdminReviews() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReviews(currentPage, filterRating);
   }, [currentPage, filterRating]);
 
