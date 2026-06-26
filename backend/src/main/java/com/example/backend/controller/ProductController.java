@@ -40,6 +40,7 @@ public class ProductController {
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false, defaultValue = "newest") String sortBy) {
         Sort sort = switch (sortBy) {
             case "price_asc"  -> Sort.by("price").ascending();
@@ -47,12 +48,30 @@ public class ProductController {
             default           -> Sort.by("id").descending();
         };
         PageRequest pageable = PageRequest.of(page, size, sort);
-        return productRepository.findActiveFiltered(pageable, search, brand, minPrice, maxPrice);
+        return productRepository.findActiveFiltered(pageable, search, brand, minPrice, maxPrice, categoryId);
     }
 
     @GetMapping("/brands")
     public ResponseEntity<List<String>> getBrands() {
         return ResponseEntity.ok(productRepository.findAllBrandsActive());
+    }
+
+    // Sản phẩm liên quan: cùng brand hoặc cùng category, lấy tối đa 6 sản phẩm
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<Product>> getRelatedProducts(@PathVariable Long id) {
+        return productRepository.findById(id)
+                .filter(p -> p.getDeleted() == null || !p.getDeleted())
+                .map(product -> {
+                    PageRequest pageable = PageRequest.of(0, 6);
+                    List<Product> related = productRepository.findRelated(
+                            product.getId(),
+                            product.getBrand(),
+                            product.getCategoryId(),
+                            pageable
+                    );
+                    return ResponseEntity.ok(related);
+                })
+                .orElse(ResponseEntity.ok(List.of()));
     }
 
     @GetMapping("/admin")
@@ -90,6 +109,7 @@ public class ProductController {
             product.setStock(productDetails.getStock());
             product.setIsPreOrder(productDetails.getIsPreOrder());
             product.setDescription(productDetails.getDescription());
+            product.setCategoryId(productDetails.getCategoryId());
             if (productDetails.getImages() != null) {
                 product.setImages(productDetails.getImages());
             }
@@ -140,7 +160,7 @@ public class ProductController {
             return ResponseEntity.ok().body(Map.of("imageUrl", fileUrl));
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("message", "Lỗi ghi file!"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Lỗi ghi file!"));
         }
     }
 }
