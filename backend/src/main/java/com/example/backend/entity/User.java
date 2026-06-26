@@ -34,4 +34,11 @@ public class User {
     private String googleId;
 
     private boolean enabled = false;
+
+    // Thông tin cá nhân bổ sung
+    private String fullName;
+
+    private String phone;
+
+    private String avatarUrl;
 }
