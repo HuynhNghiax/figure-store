@@ -16,6 +16,13 @@ export default function CategoryPage() {
   const itemsPerPage = 8;
   const isInitialOrFilterChange = useRef(true);
 
+  // Pattern React chuẩn: Cập nhật trực tiếp khi id URL thay đổi mà không dùng effect
+  const [prevId, setPrevId] = useState(id);
+  if (id !== prevId) {
+    setPrevId(id);
+    setLoading(true);
+  }
+
   // Lấy tên danh mục
   useEffect(() => {
     fetch(`${API_BASE}/api/categories`)
@@ -30,9 +37,8 @@ export default function CategoryPage() {
     return () => { document.title = 'FigHub — Cửa hàng mô hình anime cao cấp'; };
   }, [id]);
 
-  // Fetch sản phẩm theo danh mục
+  // Fetch sản phẩm theo danh mục (Bỏ setLoading đồng bộ ở đây)
   useEffect(() => {
-    setLoading(true);
     const params = new URLSearchParams({
       page: String(currentPage - 1),
       size: String(itemsPerPage),
@@ -62,12 +68,14 @@ export default function CategoryPage() {
 
   const handleSearch = (val) => {
     isInitialOrFilterChange.current = true;
+    setLoading(true);
     setSearchTerm(val);
     setCurrentPage(1);
   };
 
   const handleSort = (val) => {
     isInitialOrFilterChange.current = true;
+    setLoading(true);
     setSortBy(val);
     setCurrentPage(1);
   };
@@ -142,7 +150,7 @@ export default function CategoryPage() {
             <div className="mt-16 flex justify-center items-center gap-2">
               <button
                 type="button"
-                onClick={() => { isInitialOrFilterChange.current = false; setCurrentPage(p => Math.max(p - 1, 1)); }}
+                onClick={() => { isInitialOrFilterChange.current = false; setLoading(true); setCurrentPage(p => Math.max(p - 1, 1)); }}
                 disabled={currentPage === 1}
                 className="w-10 h-10 rounded-xl bg-[#0e0e0e] border border-white/[0.06] disabled:opacity-20 hover:border-white/[0.2] transition text-sm font-bold text-white flex items-center justify-center disabled:cursor-not-allowed"
               >
@@ -153,7 +161,7 @@ export default function CategoryPage() {
                 <button
                   key={i}
                   type="button"
-                  onClick={() => { isInitialOrFilterChange.current = false; setCurrentPage(i + 1); }}
+                  onClick={() => { isInitialOrFilterChange.current = false; setLoading(true); setCurrentPage(i + 1); }}
                   className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
                     currentPage === i + 1
                       ? 'bg-orange-600 text-white shadow-orange-600/20 shadow-lg'
@@ -166,7 +174,7 @@ export default function CategoryPage() {
 
               <button
                 type="button"
-                onClick={() => { isInitialOrFilterChange.current = false; setCurrentPage(p => Math.min(p + 1, totalPages)); }}
+                onClick={() => { isInitialOrFilterChange.current = false; setLoading(true); setCurrentPage(p => Math.min(p + 1, totalPages)); }}
                 disabled={currentPage === totalPages}
                 className="w-10 h-10 rounded-xl bg-[#0e0e0e] border border-white/[0.06] disabled:opacity-20 hover:border-white/[0.2] transition text-sm font-bold text-white flex items-center justify-center disabled:cursor-not-allowed"
               >
