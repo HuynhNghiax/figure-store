@@ -25,6 +25,7 @@ import AdminReviews from './pages/admin/AdminReviews';
 import AdminCategories from './pages/admin/AdminCategories';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
+import CategoryPage from './pages/CategoryPage';
 
 const ProtectedRoute = ({ children }) => {
   const user = getStoredUser();
@@ -59,6 +60,7 @@ function App() {
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/order/:id" element={<OrderDetail />} />
               <Route path="/payment/result" element={<PaymentResult />} />
+              <Route path="/category/:id" element={<CategoryPage />} />
               
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />

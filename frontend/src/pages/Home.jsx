@@ -5,9 +5,11 @@ import { API_BASE } from '../utils/api';
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState(['All']);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -30,6 +32,12 @@ export default function Home() {
     isInitialOrFilterChange.current = true;
     setSelectedBrand(brandId);
     setCurrentPage(1); 
+  };
+
+  const handleCategorySelect = (categoryId) => {
+    isInitialOrFilterChange.current = true;
+    setSelectedCategoryId(categoryId);
+    setCurrentPage(1);
   };
 
   const handlePriceFilter = (min, max) => {
@@ -57,6 +65,7 @@ export default function Home() {
       });
       if (searchTerm) params.set('search', searchTerm);
       if (selectedBrand !== 'All') params.set('brand', selectedBrand);
+      if (selectedCategoryId !== null) params.set('categoryId', selectedCategoryId);
       if (minPrice !== '') params.set('minPrice', minPrice);
       if (maxPrice !== '') params.set('maxPrice', maxPrice);
 
@@ -89,14 +98,19 @@ export default function Home() {
     };
 
     startFetching();
-  }, [currentPage, searchTerm, selectedBrand, minPrice, maxPrice, sortBy]);
+  }, [currentPage, searchTerm, selectedBrand, selectedCategoryId, minPrice, maxPrice, sortBy]);
 
-  // Fetch danh sách thương hiệu động từ backend
+  // Fetch danh sách thương hiệu và danh mục
   useEffect(() => {
     fetch(`${API_BASE}/api/products/brands`)
       .then(res => res.json())
       .then(data => setBrands(['All', ...data]))
       .catch(() => setBrands(['All']));
+
+    fetch(`${API_BASE}/api/categories`)
+      .then(res => res.json())
+      .then(data => setCategories(data))
+      .catch(() => setCategories([]));
   }, []);
 
 
@@ -137,6 +151,40 @@ export default function Home() {
               className="w-full bg-black border border-white/[0.08] rounded-xl px-4 py-3 text-xs focus:border-orange-500 outline-none transition-colors text-white"
             />
           </div>
+
+          {/* Danh mục */}
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-gray-500 font-black uppercase tracking-widest text-[9px] italic">Danh mục</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleCategorySelect(null)}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    selectedCategoryId === null
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/10'
+                      : 'text-gray-400 bg-black/40 border border-white/[0.03] hover:border-white/[0.1] hover:text-white'
+                  }`}
+                >
+                  Tất cả
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategorySelect(cat.id)}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      selectedCategoryId === cat.id
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/10'
+                        : 'text-gray-400 bg-black/40 border border-white/[0.03] hover:border-white/[0.1] hover:text-white'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Thương hiệu */}
           <div className="space-y-2">
@@ -316,4 +364,4 @@ export default function Home() {
       </div>
     </div>
   );
-}
+}
