@@ -18,6 +18,8 @@ export default function ProductDetail() {
 
   const { addToCartWithCheck } = useCart();
   const user = getStoredUser();
+  const [relatedProducts, setRelatedProducts] = useState([]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]); // Chạy lại khi chuyển đổi giữa các sản phẩm khác nhau
@@ -86,6 +88,15 @@ export default function ProductDetail() {
       .catch(() => { if (!cancelled) setCheckingPurchase(false); });
     return () => { cancelled = true; };
   }, [id, user]);
+
+  // Fetch sản phẩm liên quan
+  useEffect(() => {
+    fetch(`${API_BASE}/api/products/${id}/related`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setRelatedProducts(data))
+      .catch(() => setRelatedProducts([]));
+  }, [id]);
+
 
   // Reset title khi rời trang
   useEffect(() => {
@@ -369,6 +380,37 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* ==================== SẢN PHẨM LIÊN QUAN ==================== */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-24 border-t border-white/5 pt-20">
+          <h2 className="text-3xl font-black italic uppercase mb-10 tracking-tighter">
+            Có thể bạn <span className="text-orange-500">cũng thích</span>
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {relatedProducts.map(item => (
+              <Link
+                key={item.id}
+                to={`/product/${item.id}`}
+                className="group bg-[#0e0e0e] rounded-[28px] border border-white/[0.04] hover:border-orange-500/20 overflow-hidden transition-all hover:shadow-xl hover:shadow-orange-600/5"
+              >
+                <div className="aspect-square overflow-hidden bg-black">
+                  <img
+                    src={item.imageUrl?.startsWith('http') ? item.imageUrl : `${API_BASE}${item.imageUrl}`}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <div className="p-5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-orange-500/70 mb-1 block">{item.brand}</span>
+                  <h3 className="text-sm font-bold text-white mb-2 line-clamp-2 leading-snug">{item.name}</h3>
+                  <p className="text-lg font-black text-orange-500 italic">{item.price?.toLocaleString()}đ</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
