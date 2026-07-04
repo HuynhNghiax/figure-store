@@ -52,8 +52,8 @@ export default function AdminOrders() {
   const handleUpdateStatus = async (e, orderId, status) => {
     e.stopPropagation();
     if (status === 'COMPLETED' || status === 'CANCELLED') return;
-
-    const nextStatus = status === 'PENDING' ? 'SHIPPED' : 'COMPLETED';
+    const nextStatus = nextStatusMap[status];
+    if (!nextStatus) return;
 
     // Đổi trạng thái trên Giao diện trước (Optimistic Update)
     if (selectedOrder && selectedOrder.id === orderId) {
@@ -96,18 +96,32 @@ export default function AdminOrders() {
   };
 
   const statusColors = {
-    PENDING: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-    SHIPPED: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/20',
-    CANCELLED: 'bg-red-500/10 text-red-500 border-red-500/20'
+    PENDING:   'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+    SHIPPED:   'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    DELIVERED: 'bg-lime-500/10 text-lime-400 border-lime-500/20',
+    COMPLETED: 'bg-green-500/10 text-green-400 border-green-500/20',
+    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
   };
 
   const statusLabels = {
-    ALL: '📦 Tất cả',
-    PENDING: '⏳ Chờ xử lý',
-    SHIPPED: '🚚 Đang giao',
+    ALL:       '📦 Tất cả',
+    PENDING:   '⏳ Chờ xử lý',
+    SHIPPED:   '🚚 Đang giao',
+    DELIVERED: '📨 Đã giao',
     COMPLETED: '✓ Hoàn thành',
-    CANCELLED: '✕ Đã huỷ'
+    CANCELLED: '✕ Đã huỷ',
+  };
+
+  // Luồng chuyển trạng thái hợp lệ
+  const nextStatusMap = {
+    PENDING:   'SHIPPED',
+    SHIPPED:   'DELIVERED',
+    DELIVERED: 'COMPLETED',
+  };
+  const nextLabelMap = {
+    PENDING:   '→ Giao hàng',
+    SHIPPED:   '→ Đã giao',
+    DELIVERED: '→ Hoàn thành',
   };
 
   return (
@@ -194,11 +208,14 @@ export default function AdminOrders() {
                 
                 {/* 💡 SỬA NÚT BẤM: Chỉ hiển thị loading nếu updatingOrderId trùng với id đơn hàng này */}
                 <button
-                  disabled={updatingOrderId !== null || order.status === 'COMPLETED' || order.status === 'CANCELLED'}
+                  disabled={updatingOrderId !== null || !nextStatusMap[order.status]}
                   onClick={(e) => handleUpdateStatus(e, order.id, order.status)}
                   className={`px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${statusColors[order.status]}`}
                 >
-                  {updatingOrderId === order.id ? '...' : (order.status === 'PENDING' ? 'GIAO NGAY' : statusLabels[order.status])}
+                  {updatingOrderId === order.id
+                    ? '…'
+                    : nextLabelMap[order.status] || statusLabels[order.status]
+                  }
                 </button>
               </div>
 

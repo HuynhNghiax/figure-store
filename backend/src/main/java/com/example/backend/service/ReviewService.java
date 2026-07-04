@@ -5,6 +5,8 @@ import com.example.backend.entity.Review;
 import com.example.backend.repository.OrderRepository;
 import com.example.backend.repository.ReviewRepository;
 import com.example.backend.security.SecurityUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +61,13 @@ public class ReviewService {
         review.setComment(dto.getComment());
         review.setRating(dto.getRating());
         return ResponseEntity.ok(reviewRepository.save(review));
+    }
+
+    /**
+     * Admin: lấy tất cả review có phân trang, lọc theo số sao.
+     */
+    public Page<Review> getAllReviewsForAdmin(int page, int size, Integer rating) {
+        return reviewRepository.findAllFiltered(rating, PageRequest.of(page, size));
     }
 
     /**

@@ -35,6 +35,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                // Admin review endpoint phải authenticated — đặt TRƯỚC rule permitAll bên dưới
+                .requestMatchers(HttpMethod.GET, "/api/reviews/admin/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").authenticated()

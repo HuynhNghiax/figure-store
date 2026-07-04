@@ -30,10 +30,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "WHERE o.userId = :userId AND i.productId = :productId AND o.status = 'COMPLETED'")
     boolean hasUserPurchasedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 
-    // Stats aggregation — không load toàn bộ entity
+    // Tổng doanh thu từ đơn đã thanh toán
     @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.paymentStatus = 'PAID'")
     Double sumPaidRevenue();
 
+    // 10 đơn gần nhất cho biểu đồ mini
     @Query(value = "SELECT CAST(o.id AS string) AS name, " +
                    "CASE WHEN o.paymentStatus = 'PAID' THEN o.totalAmount ELSE 0 END AS doanhThu " +
                    "FROM Order o ORDER BY o.id DESC")
@@ -42,17 +43,52 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status")
     long countByStatus(@Param("status") String status);
 
-    // Top sản phẩm bán chạy: lấy theo số lượng bán từ order items
+    // Top sản phẩm bán chạy — FIX: dùng column position thay vì alias (PostgreSQL không nhận alias trong ORDER BY của native query)
     @Query(value = "SELECT i.product_id AS productId, i.product_name AS productName, " +
                    "SUM(i.quantity) AS totalSold, SUM(i.quantity * i.price) AS totalRevenue " +
                    "FROM order_items i " +
                    "JOIN orders o ON i.order_id = o.id " +
-                   "WHERE o.status = 'COMPLETED' " +
+                   "WHERE o.status IN ('COMPLETED', 'DELIVERED') " +
                    "GROUP BY i.product_id, i.product_name " +
-                   "ORDER BY totalSold DESC " +
+                   "ORDER BY 3 DESC " +
                    "LIMIT :limit",
            nativeQuery = true)
     List<Map<String, Object>> findTopSellingProducts(@Param("limit") int limit);
+
+    // Doanh thu theo tháng trong một năm cụ thể (native PostgreSQL)
+    @Query(value = "SELECT EXTRACT(MONTH FROM created_at)::int AS thang, " +
+                   "SUM(CASE WHEN payment_status = 'PAID' THEN total_amount ELSE 0 END) AS doanhThu, " +
+                   "COUNT(*) AS sodon " +
+                   "FROM orders " +
+                   "WHERE EXTRACT(YEAR FROM created_at) = :year " +
+                   "GROUP BY EXTRACT(MONTH FROM created_at) " +
+                   "ORDER BY 1 ASC",
+           nativeQuery = true)
+    List<Map<String, Object>> findMonthlyRevenue(@Param("year") int year);
+
+    // Doanh thu theo năm (5 năm gần nhất)
+    @Query(value = "SELECT EXTRACT(YEAR FROM created_at)::int AS nam, " +
+                   "SUM(CASE WHEN payment_status = 'PAID' THEN total_amount ELSE 0 END) AS doanhThu, " +
+                   "COUNT(*) AS sodon " +
+                   "FROM orders " +
+                   "GROUP BY EXTRACT(YEAR FROM created_at) " +
+                   "ORDER BY 1 ASC",
+           nativeQuery = true)
+    List<Map<String, Object>> findYearlyRevenue();
+
+    // Thống kê đơn theo trạng thái — dùng column index tránh alias lowercase issue PostgreSQL
+    @Query(value = "SELECT status, COUNT(*) AS so_luong " +
+                   "FROM orders " +
+                   "GROUP BY status " +
+                   "ORDER BY 2 DESC",
+           nativeQuery = true)
+    List<Map<String, Object>> countOrdersByStatus();
+
+    // Danh sách các năm có đơn hàng (để render dropdown)
+    @Query(value = "SELECT DISTINCT EXTRACT(YEAR FROM created_at)::int AS nam " +
+                   "FROM orders ORDER BY 1 DESC",
+           nativeQuery = true)
+    List<Integer> findDistinctYears();
 }
 
 

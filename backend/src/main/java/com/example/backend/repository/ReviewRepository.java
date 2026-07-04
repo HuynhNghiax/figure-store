@@ -1,6 +1,8 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.Review;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,4 +18,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT COUNT(r) FROM Review r WHERE r.productId = :productId")
     long countByProductId(@Param("productId") Long productId);
+
+    // Admin: lấy tất cả review, lọc theo rating (null = tất cả), phân trang
+    @Query("SELECT r FROM Review r WHERE (:rating IS NULL OR r.rating = :rating) ORDER BY r.createdAt DESC")
+    Page<Review> findAllFiltered(@Param("rating") Integer rating, Pageable pageable);
 }
