@@ -2,35 +2,35 @@ import { useState, useEffect, useCallback } from "react";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import { authFetch } from '../../utils/api';
 
-const STATUS_COLOR = {
-  PENDING:   { label: 'Chờ xử lý', color: '#eab308', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-  SHIPPED:   { label: 'Đang giao',  color: '#38bdf8', bg: 'bg-sky-500/10 border-sky-500/20' },
-  COMPLETED: { label: 'Hoàn thành', color: '#22c55e', bg: 'bg-green-500/10 border-green-500/20' },
-  DELIVERED: { label: 'Đã giao',    color: '#a3e635', bg: 'bg-lime-500/10 border-lime-500/20' },
-  CANCELLED: { label: 'Đã hủy',     color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20' },
-};
+// const STATUS_COLOR = {
+//   PENDING:   { label: 'Chờ xử lý', color: '#eab308', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+//   SHIPPED:   { label: 'Đang giao',  color: '#38bdf8', bg: 'bg-sky-500/10 border-sky-500/20' },
+//   COMPLETED: { label: 'Hoàn thành', color: '#22c55e', bg: 'bg-green-500/10 border-green-500/20' },
+//   DELIVERED: { label: 'Đã giao',    color: '#a3e635', bg: 'bg-lime-500/10 border-lime-500/20' },
+//   CANCELLED: { label: 'Đã hủy',     color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20' },
+// };
 const PIE_COLORS = ['#22c55e', '#eab308', '#38bdf8', '#a3e635', '#ef4444'];
 
 const fmt = (v) => Number(v || 0).toLocaleString('vi-VN');
 const fmtM = (v) => {
   const n = Number(v || 0);
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}tr`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}k`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
   return String(n);
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats]       = useState(null);
-  const [monthly, setMonthly]   = useState([]);
-  const [yearly, setYearly]     = useState([]);
-  const [years, setYears]       = useState([]);
-  const [selYear, setSelYear]   = useState(new Date().getFullYear());
+  const [stats, setStats] = useState(null);
+  const [monthly, setMonthly] = useState([]);
+  const [yearly, setYearly] = useState([]);
+  const [years, setYears] = useState([]);
+  const [selYear, setSelYear] = useState(new Date().getFullYear());
   const [chartMode, setChartMode] = useState('monthly'); // 'monthly' | 'yearly' | 'recent'
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // Load dashboard stats chính
   useEffect(() => {
@@ -82,19 +82,19 @@ export default function AdminDashboard() {
   );
 
   const mainCards = [
-    { label: "Doanh thu (đã TT)", value: `${fmt(stats.revenue)}đ`,    icon: "💰", color: "text-green-400",  bg: "bg-green-500/5 border-green-500/15" },
-    { label: "Tổng đơn hàng",     value: fmt(stats.totalOrders),      icon: "📋", color: "text-blue-400",   bg: "bg-blue-500/5 border-blue-500/15" },
-    { label: "Sản phẩm đang bán", value: fmt(stats.totalProducts),    icon: "📦", color: "text-orange-400", bg: "bg-orange-500/5 border-orange-500/15" },
-    { label: "Khách hàng",        value: fmt(stats.totalUsers),       icon: "👤", color: "text-purple-400", bg: "bg-purple-500/5 border-purple-500/15" },
+    { label: "Doanh thu (đã TT)", value: `${fmt(stats.revenue)}đ`, icon: "💰", color: "text-green-400", bg: "bg-green-500/5 border-green-500/15" },
+    { label: "Tổng đơn hàng", value: fmt(stats.totalOrders), icon: "📋", color: "text-blue-400", bg: "bg-blue-500/5 border-blue-500/15" },
+    { label: "Sản phẩm đang bán", value: fmt(stats.totalProducts), icon: "📦", color: "text-orange-400", bg: "bg-orange-500/5 border-orange-500/15" },
+    { label: "Khách hàng", value: fmt(stats.totalUsers), icon: "👤", color: "text-purple-400", bg: "bg-purple-500/5 border-purple-500/15" },
   ];
 
   // ── Dùng trực tiếp field JPQL (đáng tin cậy, không phụ thuộc PostgreSQL lowercase) ──
   const statusBreakdown = [
-    { key: 'PENDING',   label: 'Chờ xử lý',  count: stats.pendingOrders   || 0, color: '#eab308', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-    { key: 'SHIPPED',   label: 'Đang giao',   count: stats.shippedOrders   || 0, color: '#38bdf8', bg: 'bg-sky-500/10 border-sky-500/20' },
-    { key: 'COMPLETED', label: 'Hoàn thành',  count: stats.completedOrders || 0, color: '#22c55e', bg: 'bg-green-500/10 border-green-500/20' },
-    { key: 'DELIVERED', label: 'Đã giao',     count: stats.deliveredOrders || 0, color: '#a3e635', bg: 'bg-lime-500/10 border-lime-500/20' },
-    { key: 'CANCELLED', label: 'Đã hủy',      count: stats.cancelledOrders || 0, color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20' },
+    { key: 'PENDING', label: 'Chờ xử lý', count: stats.pendingOrders || 0, color: '#eab308', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+    { key: 'SHIPPED', label: 'Đang giao', count: stats.shippedOrders || 0, color: '#38bdf8', bg: 'bg-sky-500/10 border-sky-500/20' },
+    { key: 'COMPLETED', label: 'Hoàn thành', count: stats.completedOrders || 0, color: '#22c55e', bg: 'bg-green-500/10 border-green-500/20' },
+    { key: 'DELIVERED', label: 'Đã giao', count: stats.deliveredOrders || 0, color: '#a3e635', bg: 'bg-lime-500/10 border-lime-500/20' },
+    { key: 'CANCELLED', label: 'Đã hủy', count: stats.cancelledOrders || 0, color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20' },
   ];
 
   // Pie chart data — lọc status nào có đơn
@@ -152,17 +152,16 @@ export default function AdminDashboard() {
             {/* Tab buttons */}
             {[
               { key: 'monthly', label: 'Theo tháng' },
-              { key: 'yearly',  label: 'Theo năm' },
-              { key: 'recent',  label: 'Đơn gần nhất' },
+              { key: 'yearly', label: 'Theo năm' },
+              { key: 'recent', label: 'Đơn gần nhất' },
             ].map(t => (
               <button
                 key={t.key}
                 onClick={() => setChartMode(t.key)}
-                className={`text-xs px-4 py-2 rounded-xl font-bold transition-all ${
-                  chartMode === t.key
+                className={`text-xs px-4 py-2 rounded-xl font-bold transition-all ${chartMode === t.key
                     ? 'bg-orange-500 text-white'
                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 {t.label}
               </button>
@@ -198,8 +197,8 @@ export default function AdminDashboard() {
                         ? [`${fmt(v)}đ`, 'Doanh thu']
                         : [`${v} đơn`, 'Số đơn']}
                     />
-                    <Bar dataKey="doanhThu" name="doanhThu" fill="#ea580c" radius={[8,8,0,0]} />
-                    <Bar dataKey="sodon"    name="sodon"    fill="#3b82f6" radius={[8,8,0,0]} />
+                    <Bar dataKey="doanhThu" name="doanhThu" fill="#ea580c" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="sodon" name="sodon" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )
@@ -221,7 +220,7 @@ export default function AdminDashboard() {
                         : [`${v} đơn`, 'Số đơn']}
                     />
                     <Line type="monotone" dataKey="doanhThu" name="doanhThu" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 5, fill: '#ea580c' }} />
-                    <Line type="monotone" dataKey="sodon"    name="sodon"    stroke="#3b82f6" strokeWidth={2}   dot={{ r: 4, fill: '#3b82f6' }} />
+                    <Line type="monotone" dataKey="sodon" name="sodon" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6' }} />
                   </LineChart>
                 </ResponsiveContainer>
               )
@@ -240,7 +239,7 @@ export default function AdminDashboard() {
                       contentStyle={{ backgroundColor: '#161616', border: '1px solid #2a2a2a', borderRadius: '14px', fontSize: 12 }}
                       formatter={(v) => [`${fmt(v)}đ`, 'Doanh thu']}
                     />
-                    <Bar dataKey="doanhThu" fill="#ea580c" radius={[10,10,0,0]} />
+                    <Bar dataKey="doanhThu" fill="#ea580c" radius={[10, 10, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )
@@ -250,8 +249,8 @@ export default function AdminDashboard() {
         {/* Chart legend */}
         {(chartMode === 'monthly' || chartMode === 'yearly') && (
           <div className="flex items-center gap-6 text-xs text-gray-400">
-            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-orange-500 inline-block"/>Doanh thu (đ)</span>
-            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block"/>Số đơn hàng</span>
+            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-orange-500 inline-block" />Doanh thu (đ)</span>
+            <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />Số đơn hàng</span>
           </div>
         )}
       </div>
@@ -274,12 +273,11 @@ export default function AdminDashboard() {
             <div className="divide-y divide-white/[0.04]">
               {topProducts.map((p, i) => (
                 <div key={i} className="flex items-center gap-4 px-7 py-4 hover:bg-white/[0.02] transition-all">
-                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 border ${
-                    i === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                    i === 1 ? 'bg-gray-400/10 text-gray-300 border-gray-400/20' :
-                    i === 2 ? 'bg-amber-700/20 text-amber-600 border-amber-700/30' :
-                               'bg-white/5 text-gray-500 border-white/5'
-                  }`}>
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 border ${i === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                      i === 1 ? 'bg-gray-400/10 text-gray-300 border-gray-400/20' :
+                        i === 2 ? 'bg-amber-700/20 text-amber-600 border-amber-700/30' :
+                          'bg-white/5 text-gray-500 border-white/5'
+                    }`}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
