@@ -43,6 +43,14 @@ D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\security\Jw
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\security\SecurityConfig.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\security\SecurityUtils.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\AuthService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\CartService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\CouponService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\EmailService.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\GoogleAuthService.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\OrderService.java
 D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\PaypalService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\ProductService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\ReviewService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\StatsService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\UserService.java
+D:\hoc\github\figure-store\backend\src\main\java\com\example\backend\service\WishlistService.java

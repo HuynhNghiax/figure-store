@@ -9,12 +9,11 @@ import com.example.backend.repository.ResetTokenRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.SecurityUtils;
 import com.example.backend.service.AuthService;
+import com.example.backend.service.EmailService;
 import com.example.backend.service.GoogleAuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,30 +28,27 @@ import java.util.UUID;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
     private final ResetTokenRepository resetTokenRepository;
-    private final String mailFrom;
+    private final EmailService emailService;
     private final String frontendUrl;
 
     public AuthController(
             UserRepository userRepository,
-            JavaMailSender mailSender,
             PasswordEncoder passwordEncoder,
             AuthService authService,
             GoogleAuthService googleAuthService,
             ResetTokenRepository resetTokenRepository,
-            @org.springframework.beans.factory.annotation.Value("${spring.mail.username:}") String mailFrom,
+            EmailService emailService,
             @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
-        this.mailSender = mailSender;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
         this.googleAuthService = googleAuthService;
         this.resetTokenRepository = resetTokenRepository;
-        this.mailFrom = mailFrom;
+        this.emailService = emailService;
         this.frontendUrl = frontendUrl;
     }
 
@@ -76,12 +72,9 @@ public class AuthController {
         user.setRole("USER");
         userRepository.save(user);
 
-        try {
-            sendOtpEmail(user.getEmail(), otp, "FIGHUB - MÃ XÁC THỰC TÀI KHOẢN");
-            return ResponseEntity.ok().body(Map.of("message", "Mã xác thực đã được gửi về Gmail của bạn!"));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Lỗi gửi Mail, hãy kiểm tra App Password!"));
-        }
+        // Gửi email bất đồng bộ (@Async) — không block luồng HTTP
+        emailService.sendOtpEmail(user.getEmail(), otp, "FIGHUB - MÃ XÁC THỰC TÀI KHOẢN");
+        return ResponseEntity.ok().body(Map.of("message", "Mã xác thực đã được gửi về Gmail của bạn!"));
     }
 
     @PostMapping("/verify-otp")
@@ -92,7 +85,6 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (user.getOtp() != null && user.getOtp().equals(otp)) {
-                // Kiểm tra OTP đã hết hạn chưa (10 phút)
                 if (user.getOtpExpiry() != null && user.getOtpExpiry().isBefore(LocalDateTime.now())) {
                     return ResponseEntity.status(400).body(Map.of("message", "Mã xác thực đã hết hạn! Vui lòng đăng ký lại."));
                 }
@@ -145,7 +137,6 @@ public class AuthController {
         }
         User user = userOpt.get();
 
-        // Tạo token duy nhất, hết hạn sau 5 phút
         String token = UUID.randomUUID().toString();
         ResetToken resetToken = new ResetToken();
         resetToken.setToken(token);
@@ -154,18 +145,15 @@ public class AuthController {
         resetToken.setUsed(false);
         resetTokenRepository.save(resetToken);
 
-        // Gửi link reset qua email
+        // Gửi email bất đồng bộ (@Async) — không block luồng HTTP
         String resetLink = frontendUrl + "/reset-password?token=" + token;
-        try {
-            sendResetEmail(user.getEmail(), resetLink);
-            return ResponseEntity.ok().body(Map.of("message", "Link khôi phục mật khẩu đã được gửi về email của bạn! Link có hiệu lực trong 5 phút."));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Lỗi gửi Mail!"));
-        }
+        emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        return ResponseEntity.ok().body(Map.of("message", "Link khôi phục mật khẩu đã được gửi về email của bạn! Link có hiệu lực trong 5 phút."));
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> data, @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> data,
+                                            @RequestHeader("Authorization") String authHeader) {
         String oldPassword = data.get("oldPassword");
         String newPassword = data.get("newPassword");
         if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
@@ -206,49 +194,20 @@ public class AuthController {
         }
 
         ResetToken resetToken = tokenOpt.get();
-
-        // Kiểm tra đã sử dụng chưa
         if (resetToken.isUsed()) {
             return ResponseEntity.status(400).body(Map.of("message", "Link khôi phục này đã được sử dụng! Vui lòng yêu cầu link mới."));
         }
-
-        // Kiểm tra hết hạn chưa
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             return ResponseEntity.status(400).body(Map.of("message", "Link khôi phục đã hết hạn! Vui lòng yêu cầu link mới."));
         }
 
-        // Đánh dấu token đã dùng
         resetToken.setUsed(true);
         resetTokenRepository.save(resetToken);
 
-        // Đổi mật khẩu
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         return ResponseEntity.ok().body(Map.of("message", "Đổi mật khẩu thành công! Hãy đăng nhập lại."));
-    }
-
-    private void sendOtpEmail(String email, String otp, String subject) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        if (mailFrom != null && !mailFrom.isBlank()) message.setFrom(mailFrom);
-        message.setTo(email);
-        message.setSubject(subject);
-        message.setText("Mã xác thực của bạn là: " + otp + "\nVui lòng không chia sẻ mã này với bất kỳ ai.");
-        mailSender.send(message);
-    }
-
-    private void sendResetEmail(String email, String resetLink) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        if (mailFrom != null && !mailFrom.isBlank()) message.setFrom(mailFrom);
-        message.setTo(email);
-        message.setSubject("FIGHUB - KHÔI PHỤC MẬT KHẨU");
-        message.setText(
-            "Bạn đã yêu cầu khôi phục mật khẩu FigHub.\n\n" +
-            "Nhấp vào link bên dưới để đặt lại mật khẩu (hiệu lực trong 5 phút, chỉ sử dụng 1 lần):\n\n" +
-            resetLink + "\n\n" +
-            "Nếu bạn không yêu cầu khôi phục, vui lòng bỏ qua email này."
-        );
-        mailSender.send(message);
     }
 }
