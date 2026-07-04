@@ -33,7 +33,9 @@ export default function AdminCategories() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      return toast.error('Vui lòng nhập tên danh mục!');
+    }
     setAdding(true);
     try {
       const res = await authFetch('/api/categories', {
@@ -61,7 +63,9 @@ export default function AdminCategories() {
   };
 
   const handleSaveEdit = async (id) => {
-    if (!editName.trim()) return;
+    if (!editName.trim()) {
+      return toast.error('Vui lòng nhập tên danh mục!');
+    }
     setSavingId(id);
     try {
       const res = await authFetch(`/api/categories/${id}`, {

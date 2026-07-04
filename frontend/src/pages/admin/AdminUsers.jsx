@@ -56,6 +56,9 @@ export default function AdminUsers() {
 
   const handleEdit = async (e) => {
     e.preventDefault();
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      return toast.error("Email không hợp lệ!");
+    }
     try {
       const res = await fetch(`${API_BASE}/api/users/${editUser.id}`, {
         method: "PUT",

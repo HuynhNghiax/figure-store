@@ -159,7 +159,7 @@ export default function AdminProducts() {
       const data = new FormData();
       data.append("file", file); // Khớp chuẩn với @RequestParam("file") của Spring Boot
       try {
-        const response = await fetch(`${API_BASE}/api/products/upload`, {
+        const response = await fetch(`${API_BASE}/api/products/actions/upload`, {
           method: "POST",
           headers: token ? { "Authorization": `Bearer ${token}` } : {}, // Bọc ngoặc kép tường minh cho Key Header
           body: data,
@@ -205,7 +205,7 @@ export default function AdminProducts() {
 
     try {
       const token = getToken();
-      const response = await fetch(`${API_BASE}/api/products/upload`, {
+      const response = await fetch(`${API_BASE}/api/products/actions/upload`, {
         method: "POST",
         headers: token ? { "Authorization": `Bearer ${token}` } : {}, // Sửa định dạng Header gửi token
         body: data
@@ -229,6 +229,22 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.name || formData.name.trim() === '') {
+      return toast.error("Vui lòng nhập tên sản phẩm!");
+    }
+
+    if (Number(formData.price) <= 0) {
+      return toast.error("Giá sản phẩm phải lớn hơn 0!");
+    }
+
+    if (Number(formData.stock) < 0) {
+      return toast.error("Số lượng tồn kho không được âm!");
+    }
+
+    if (!formData.brand || formData.brand.trim() === '') {
+      return toast.error("Vui lòng nhập thương hiệu sản phẩm!");
+    }
 
     if (!formData.imageUrl) {
       return toast.error("Vui lòng tải ảnh lên trước khi lưu mô hình!");
